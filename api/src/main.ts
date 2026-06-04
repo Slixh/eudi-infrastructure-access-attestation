@@ -35,6 +35,10 @@ async function bootstrap() {
   app.use((req: Request, res: Response, next: NextFunction) => {
     if (WELL_KNOWN_ISSUER_PATHS.has(req.path)) {
       res.setHeader('Cache-Control', 'no-store');
+      // Serve the correct document per path
+      if (req.path === '/.well-known/oauth-authorization-server' || req.path === '/.well-known/oauth-authorization-server/issuer') {
+        return res.json(issuerService.getAuthorizationServerMetadata());
+      }
       return res.json(issuerService.getIssuerMetadata());
     }
     if (WELL_KNOWN_JWT_VC_PATHS.has(req.path)) {

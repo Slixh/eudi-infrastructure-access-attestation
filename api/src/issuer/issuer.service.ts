@@ -510,6 +510,34 @@ export class IssuerService implements OnModuleInit {
     };
   }
 
+  // ── OAuth Authorization Server metadata (/.well-known/oauth-authorization-server)
+  // Some wallets expect a dedicated OAuth AS discovery document at the root.
+  // This mirrors the auth-related fields from getIssuerMetadata().
+  getAuthorizationServerMetadata() {
+    const base = `${this.baseUrl}/issuer`;
+    const origin = this.baseUrl;
+
+    return {
+      issuer: origin,
+      authorization_endpoint: `${base}/authorize`,
+      token_endpoint: `${base}/token`,
+      jwks_uri: `${base}/jwks`,
+      response_types_supported: ['token', 'code'],
+      grant_types_supported: [
+        'urn:ietf:params:oauth:grant-type:pre-authorized_code',
+        'authorization_code',
+      ],
+      token_endpoint_auth_methods_supported: ['none', 'attest_jwt_client_auth'],
+      token_endpoint_auth_signing_alg_values_supported: ['ES256'],
+      authorization_endpoint_auth_methods_supported: ['attest_jwt_client_auth'],
+      authorization_endpoint_auth_signing_alg_values_supported: ['ES256'],
+      client_attestation_pop_jwt_signing_alg_values_supported: ['ES256'],
+      request_parameter_supported: true,
+      code_challenge_methods_supported: ['S256', 'plain'],
+      scopes_supported: ['openid', 'InfrastructureAccessEAA'],
+    };
+  }
+
   // JWKS endpoint — wallet uses this to verify issued SD-JWT VCs
   getJwks() {
     return { keys: [this.publicJwk] };
