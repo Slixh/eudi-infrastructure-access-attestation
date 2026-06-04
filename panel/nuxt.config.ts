@@ -12,11 +12,14 @@ export default defineNuxtConfig({
   // the panel container can't reach the public API domain during server render.
   ssr: false,
 
-  // Served at /panel/ — Nuxt router and asset paths are adjusted accordingly.
-  // Traefik forwards PathPrefix(`/panel`) without stripping, so Nuxt sees the
-  // full path and routes correctly.
   app: {
     baseURL: '/panel/',
+    head: {
+      link: [
+        { rel: 'icon', type: 'image/svg+xml', href: '/panel/favicon.svg' },
+      ],
+      titleTemplate: '%s · EUDI Access Management',
+    },
   },
 
   modules: [

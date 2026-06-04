@@ -1,2 +1,21 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
+
+/*
+ * Brand color palette — derived from the logo gradient (#0162CB → #00C7FF).
+ * Overrides NuxtUI's default primary scale so all UButton, UBadge etc.
+ * automatically use the brand blue.
+ */
+:root {
+  --color-primary-50:  #e6f3ff;
+  --color-primary-100: #cce6ff;
+  --color-primary-200: #99ceff;
+  --color-primary-300: #66b5ff;
+  --color-primary-400: #339dff;
+  --color-primary-500: #0162cb;
+  --color-primary-600: #014fb0;
+  --color-primary-700: #013b85;
+  --color-primary-800: #002859;
+  --color-primary-900: #00142e;
+  --color-primary-950: #000a17;
+}

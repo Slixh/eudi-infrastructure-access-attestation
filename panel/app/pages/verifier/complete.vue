@@ -2,93 +2,38 @@
 definePageMeta({ layout: false })
 
 const route = useRoute()
-const config = useRuntimeConfig()
-
 const state            = route.query.state as string
 const errorCode        = route.query.error as string | undefined
 const errorDescription = route.query.error_description as string | undefined
 
-// If the wallet redirected here with an error code, skip the API fetch entirely.
 const { data, error: fetchError } = errorCode
   ? { data: ref(null), error: ref(null) }
-  : await useFetch<{ offerUri: string }>('/verifier/complete', {
-      baseURL: config.public.apiBase,
-      query: { state },
-    })
-
-const ERROR_CONFIG: Record<string, { icon: string; iconClass: string; title: string }> = {
-  pid_mismatch: {
-    icon:      'heroicons:user-minus',
-    iconClass: 'text-red-500',
-    title:     'Identität stimmt nicht überein',
-  },
-  grant_already_active: {
-    icon:      'heroicons:lock-closed',
-    iconClass: 'text-gray-400',
-    title:     'Zugang bereits vergeben',
-  },
-}
-
-const errorConfig = computed(() =>
-  errorCode
-    ? (ERROR_CONFIG[errorCode] ?? { icon: 'heroicons:exclamation-triangle', iconClass: 'text-amber-500', title: 'Fehler' })
-    : null,
-)
-
+  : await useVerifierComplete(state)
 </script>
 
 <template>
-  <div class="min-h-dvh bg-gray-50 dark:bg-gray-950 flex items-center justify-center px-4 py-12">
-    <UCard class="max-w-md w-full text-center">
+  <div class="min-h-dvh bg-gray-50 dark:bg-gray-950 flex flex-col items-center justify-center px-4 py-12">
+    <div class="flex items-center gap-2 mb-8">
+      <img src="/logo.svg" alt="EUDI IAA" class="w-8 h-8" />
+      <span class="font-semibold text-gray-500 dark:text-gray-400 text-sm">EUDI Access Management</span>
+    </div>
+    <UCard class="max-w-md w-full">
 
-      <!-- Wallet-level error (pid_mismatch, grant_already_active, …) -->
-      <template v-if="errorConfig">
-        <UIcon
-          :name="errorConfig.icon"
-          class="w-12 h-12 mx-auto mb-3"
-          :class="errorConfig.iconClass"
-        />
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          {{ errorConfig.title }}
-        </h2>
-        <p v-if="errorDescription" class="text-sm text-gray-500">
-          {{ errorDescription }}
-        </p>
-      </template>
+      <VerifierCompleteError
+        v-if="errorCode"
+        :code="errorCode"
+        :description="errorDescription"
+      />
 
-      <!-- Fetch error (session expired / unknown state) -->
-      <template v-else-if="fetchError">
-        <UIcon name="heroicons:exclamation-triangle" class="w-10 h-10 text-amber-500 mx-auto mb-3" />
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          Session abgelaufen
-        </h2>
-        <p class="text-sm text-gray-500">
-          Das Credential Angebot ist nicht mehr gültig oder wurde bereits abgerufen.
-        </p>
-      </template>
+      <VerifierCompleteError
+        v-else-if="fetchError"
+        code="session_expired"
+      />
 
-      <!-- Success -->
-      <template v-else-if="data">
-        <UIcon name="heroicons:check-circle" class="w-12 h-12 text-green-500 mx-auto mb-3" />
-        <h1 class="text-xl font-bold text-gray-900 dark:text-white mb-2">
-          Identität verifiziert
-        </h1>
-        <p class="text-sm text-gray-500 mb-6">
-          Öffne den Link in deiner EUDI Wallet um dein
-          <strong>Zugangs-Credential</strong> abzurufen.
-        </p>
-
-        <AppQrCode :value="data.offerUri" :size="240" class="mx-auto mb-6" />
-
-        <UButton :to="data.offerUri" size="lg" block>
-          In EUDI Wallet öffnen
-        </UButton>
-
-        <p class="text-sm text-gray-400 mt-4">
-          Gleiches Gerät? Button tippen.<br>
-          Anderes Gerät? QR-Code scannen.
-        </p>
-      </template>
+      <VerifierCompleteSuccess
+        v-else-if="data"
+        :offer-uri="data.offerUri"
+      />
 
     </UCard>
   </div>
