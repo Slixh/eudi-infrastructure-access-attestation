@@ -19,8 +19,8 @@ COPY src/ ./src/
 ENV DATABASE_URL="file:/tmp/build.db"
 RUN npx prisma generate
 
-# Build — fail loudly if dist/main.js is not produced
-RUN pnpm build && test -f dist/main.js || (echo "ERROR: dist/main.js not found after build" && exit 1)
+# Build with tsc directly (bypasses nest CLI which has TS6 compatibility issues)
+RUN npx tsc --project tsconfig.json && test -f dist/main.js || (echo "ERROR: dist/main.js not found after tsc" && exit 1)
 
 # Prune dev dependencies
 RUN pnpm prune --prod

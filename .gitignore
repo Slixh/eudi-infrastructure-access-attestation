@@ -7,4 +7,5 @@ certs/*
 signing-input.txt
 signed-schema-metadata.jwt
 dev.db
+*.tsbuildinfo
 
