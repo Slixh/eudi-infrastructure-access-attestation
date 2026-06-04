@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Query, Body, Res, Header, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, Res, Header, NotFoundException, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { Response } from 'express';
 import { VerifierService } from './verifier.service';
@@ -41,6 +41,7 @@ export class VerifierController {
       },
     },
   })
+  @HttpCode(200)
   async receiveVpResponse(@Body() body: Record<string, string>) {
     return this.verifierService.handleVpResponse(body);
   }
