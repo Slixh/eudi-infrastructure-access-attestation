@@ -466,22 +466,25 @@ export class IssuerService implements OnModuleInit {
       // authorization_endpoint is required by OIDC Discovery validation even for
       // pre-auth flow where it is never actually called.
       authorization_endpoint: `${base}/authorize`,
-      // Authorization endpoint client authentication — advertise only "none"
-      // to prevent wallets from attempting attestation-based client auth
-      authorization_endpoint_auth_methods_supported: ['none'],
+      // Authorization endpoint client authentication — advertise attestation-based client auth
+      authorization_endpoint_auth_methods_supported: ['attest_jwt_client_auth'],
       // jwks_uri: wallet fetches this to verify issued credentials (required by OIDC Discovery)
       jwks_uri: `${base}/jwks`,
       grant_types_supported: [
         'urn:ietf:params:oauth:grant-type:pre-authorized_code',
         'authorization_code',
       ],
-      token_endpoint_auth_methods_supported: ['none'],
+      token_endpoint_auth_methods_supported: ['none', 'attest_jwt_client_auth'],
       response_types_supported: ['token', 'code'],
       // Hints commonly expected by wallets
       request_parameter_supported: true,
       code_challenge_methods_supported: ['S256', 'plain'],
       scopes_supported: ['openid', 'InfrastructureAccessEAA'],
       subject_types_supported: ['public'],
+      // Newer ABA draft fields expected by EUDI Wallet
+      client_attestation_signing_alg_values_supported: ['ES256'],
+      // Rename POP algs field to the expected key (no _jwt)
+      client_attestation_pop_signing_alg_values_supported: ['ES256'],
       id_token_signing_alg_values_supported: ['ES256'],
 
       credential_configurations_supported: {
@@ -521,8 +524,11 @@ export class IssuerService implements OnModuleInit {
         'urn:ietf:params:oauth:grant-type:pre-authorized_code',
         'authorization_code',
       ],
-      token_endpoint_auth_methods_supported: ['none'],
-      authorization_endpoint_auth_methods_supported: ['none'],
+      token_endpoint_auth_methods_supported: ['none', 'attest_jwt_client_auth'],
+      authorization_endpoint_auth_methods_supported: ['attest_jwt_client_auth'],
+      // Newer ABA draft fields expected by EUDI Wallet
+      client_attestation_signing_alg_values_supported: ['ES256'],
+      client_attestation_pop_signing_alg_values_supported: ['ES256'],
       request_parameter_supported: true,
       code_challenge_methods_supported: ['S256', 'plain'],
       scopes_supported: ['openid', 'InfrastructureAccessEAA'],
@@ -542,6 +548,35 @@ export class IssuerService implements OnModuleInit {
     return {
       issuer: this.baseUrl,
       jwks: { keys: [this.publicJwk] },
+    };
+  }
+
+  // ── OpenID Provider metadata (/.well-known/openid-configuration) ──────────
+  // Some clients (e.g., EUDI Wallet libraries) consult this document to
+  // determine Authorization Server capabilities, including ABA requirements.
+  getOpenIdProviderMetadata() {
+    const base = `${this.baseUrl}/issuer`;
+    const origin = this.baseUrl;
+    return {
+      issuer: origin,
+      authorization_endpoint: `${base}/authorize`,
+      token_endpoint: `${base}/token`,
+      jwks_uri: `${base}/jwks`,
+      response_types_supported: ['token', 'code'],
+      grant_types_supported: [
+        'urn:ietf:params:oauth:grant-type:pre-authorized_code',
+        'authorization_code',
+      ],
+      token_endpoint_auth_methods_supported: ['none', 'attest_jwt_client_auth'],
+      authorization_endpoint_auth_methods_supported: ['attest_jwt_client_auth'],
+      // Fields required by the newer ABA draft checked by the wallet
+      client_attestation_signing_alg_values_supported: ['ES256'],
+      client_attestation_pop_signing_alg_values_supported: ['ES256'],
+      request_parameter_supported: true,
+      code_challenge_methods_supported: ['S256', 'plain'],
+      scopes_supported: ['openid', 'InfrastructureAccessEAA'],
+      subject_types_supported: ['public'],
+      id_token_signing_alg_values_supported: ['ES256'],
     };
   }
 

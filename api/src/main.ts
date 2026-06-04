@@ -9,7 +9,7 @@ import type { Request, Response, NextFunction } from 'express';
 
 // Centralized well-known routing map → which metadata producer to call.
 // This removes ambiguity and duplication across middleware and controllers.
-type WellKnownHandler = 'issuer' | 'oauth_as' | 'jwt_vc_issuer' | 'oidc_provider_unsupported';
+type WellKnownHandler = 'issuer' | 'oauth_as' | 'jwt_vc_issuer' | 'oidc_provider';
 const WELL_KNOWN_ROUTES: Record<string, WellKnownHandler> = {
   // OID4VCI Issuer metadata
   '/.well-known/openid-credential-issuer': 'issuer',
@@ -20,9 +20,9 @@ const WELL_KNOWN_ROUTES: Record<string, WellKnownHandler> = {
   // SD-JWT VC: JWT VC Issuer metadata
   '/.well-known/jwt-vc-issuer': 'jwt_vc_issuer',
   '/.well-known/jwt-vc-issuer/issuer': 'jwt_vc_issuer',
-  // Placeholders for classic OIDC OP discovery — currently unsupported, respond 404
-  '/.well-known/openid-configuration': 'oidc_provider_unsupported',
-  '/.well-known/openid-configuration/issuer': 'oidc_provider_unsupported',
+  // OpenID Provider Discovery (used by some wallets to check ABA fields)
+  '/.well-known/openid-configuration': 'oidc_provider',
+  '/.well-known/openid-configuration/issuer': 'oidc_provider',
 };
 
 async function bootstrap() {
@@ -44,11 +44,8 @@ async function bootstrap() {
           return res.json(issuerService.getAuthorizationServerMetadata());
         case 'jwt_vc_issuer':
           return res.json(issuerService.getJwtVcIssuerMetadata());
-        case 'oidc_provider_unsupported':
-          return res.status(404).json({
-            error: 'not_found',
-            error_description: 'OpenID Provider discovery is not supported by this service',
-          });
+        case 'oidc_provider':
+          return res.json(issuerService.getOpenIdProviderMetadata());
       }
     }
     next();
