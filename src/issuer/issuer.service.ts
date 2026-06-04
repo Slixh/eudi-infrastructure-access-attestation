@@ -97,6 +97,7 @@ export class IssuerService implements OnModuleInit {
       grants: {
         'urn:ietf:params:oauth:grant-type:pre-authorized_code': {
           'pre-authorized_code': preAuthCode,
+          // tx_code intentionally omitted — no PIN required for this flow
         },
       },
     };
