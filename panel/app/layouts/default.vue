@@ -4,7 +4,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <NuxtLink to="/" class="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
           <AppLogo class="w-7 h-7 shrink-0" />
-          <span class="font-semibold text-gray-900 dark:text-white">Infrastructure Access Attestation</span>
+          <span class="font-semibold text-gray-900 dark:text-white whitespace-nowrap">Infrastructure Access Attestation</span>
         </NuxtLink>
 
         <nav class="flex items-center gap-1">

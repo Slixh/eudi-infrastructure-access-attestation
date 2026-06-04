@@ -2,20 +2,20 @@
 @import "@nuxt/ui";
 
 /*
- * Override NuxtUI's primary color with the logo brand palette.
- * Logo gradient: #0162CB (dark blue) → #00C7FF (cyan).
- * The 500 value is the main interactive color (buttons, links, focus rings).
+ * Brand colors — logo gradient: #0162CB (dark) → #00C7FF (cyan).
+ * app.config.ts sets primary: 'blue', so NuxtUI reads --color-blue-*.
+ * Overriding those here maps the full blue palette to our brand palette.
  */
-:root, .dark {
-  --color-primary-50:  color(display-p3 0.91 0.96 1);
-  --color-primary-100: #cce3ff;
-  --color-primary-200: #99c8ff;
-  --color-primary-300: #66acff;
-  --color-primary-400: #3391ff;
-  --color-primary-500: #0162cb;
-  --color-primary-600: #014fa3;
-  --color-primary-700: #013b7a;
-  --color-primary-800: #002852;
-  --color-primary-900: #001429;
-  --color-primary-950: #000a14;
+:root {
+  --color-blue-50:  #e6f3ff;
+  --color-blue-100: #cce6ff;
+  --color-blue-200: #99ceff;
+  --color-blue-300: #66b5ff;
+  --color-blue-400: #3391ff;
+  --color-blue-500: #0162cb;
+  --color-blue-600: #014fb0;
+  --color-blue-700: #013b85;
+  --color-blue-800: #002859;
+  --color-blue-900: #00142e;
+  --color-blue-950: #000a17;
 }

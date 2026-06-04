@@ -28,14 +28,6 @@ export default defineNuxtConfig({
     '@nuxt/icon',
   ],
 
-  ui: {
-    // Use 'blue' as the base for primary — closest preset to the logo #0162CB.
-    // The exact shade is then overridden via CSS custom properties in main.css.
-    colors: {
-      primary: 'blue',
-    },
-  },
-
   // @nuxt/ui v3 bundles Tailwind CSS v4 automatically.
   // No separate tailwindcss module needed.
   css: ['~/assets/css/main.css'],
