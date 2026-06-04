@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Headers, Header } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { IssuerService } from './issuer.service';
 
@@ -7,23 +7,25 @@ import { IssuerService } from './issuer.service';
 export class IssuerController {
   constructor(private readonly issuerService: IssuerService) {}
 
-  // Wallet fetches offer metadata from this URL
+  // Wallet fetches offer object when using credential_offer_uri parameter
   @Get('offers/:preAuthCode')
   @ApiOperation({ summary: 'OID4VCI: fetch credential offer object' })
   getOffer(@Param('preAuthCode') preAuthCode: string) {
     return this.issuerService.getOfferMetadata(preAuthCode);
   }
 
-  // RFC 6749 token endpoint — wallet exchanges pre-auth code for access token
+  // RFC 6749 / OID4VCI token endpoint
+  // Content-Type: application/x-www-form-urlencoded (wallet sends form data)
   @Post('token')
+  @Header('Cache-Control', 'no-store')
   @ApiOperation({ summary: 'OID4VCI: token endpoint (pre-authorized_code grant)' })
   token(@Body() body: Record<string, string>) {
     return this.issuerService.handleTokenRequest(body);
   }
 
-  // Credential endpoint — wallet presents access token + proof, gets SD-JWT VC
+  // Credential endpoint
   @Post('credential')
-  @ApiOperation({ summary: 'OID4VCI: credential endpoint — issues SD-JWT EAA' })
+  @ApiOperation({ summary: 'OID4VCI: credential endpoint — issues EAA SD-JWT VC' })
   credential(
     @Headers('authorization') authHeader: string,
     @Body() body: Record<string, unknown>,
@@ -31,23 +33,10 @@ export class IssuerController {
     return this.issuerService.handleCredentialRequest(authHeader, body);
   }
 
-  // Well-known metadata endpoint (wallets auto-discover via this)
+  // OID4VCI issuer metadata discovery
   @Get('.well-known/openid-credential-issuer')
   @ApiOperation({ summary: 'OID4VCI: Issuer metadata discovery' })
   wellKnown() {
-    return {
-      credential_issuer: process.env.PUBLIC_BASE_URL + '/issuer',
-      credential_endpoint: process.env.PUBLIC_BASE_URL + '/issuer/credential',
-      token_endpoint: process.env.PUBLIC_BASE_URL + '/issuer/token',
-      credentials_supported: [
-        {
-          format: 'vc+sd-jwt',
-          id: 'eu.europa.ec.eudi.pid.eaa.1',
-          vct: 'eu.europa.ec.eudi.pid.eaa.1',
-          cryptographic_binding_methods_supported: ['did:key', 'jwk'],
-          credential_signing_alg_values_supported: ['EdDSA', 'ES256'],
-        },
-      ],
-    };
+    return this.issuerService.getIssuerMetadata();
   }
 }

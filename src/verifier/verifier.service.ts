@@ -36,6 +36,10 @@ export class VerifierService implements OnModuleInit {
   private readonly sessions = new Map<string, Session>();          // key = inviteToken
   private readonly sessionsByKid = new Map<string, Session>();     // key = kid
 
+  // Completed verifications: state → credential offer URI
+  // The /verifier/complete browser page reads this to show the offer to the user
+  private readonly completions = new Map<string, string>();        // key = inviteToken
+
   // Loaded once at startup
   private signingKeyPem: string;
   private certPem: string;
@@ -282,8 +286,18 @@ export class VerifierService implements OnModuleInit {
 
     const credentialOfferUri = await this.issuerService.createCredentialOffer(grant.id, pidSubject);
 
-    const redirectUri = `${this.baseUrl}/verifier/complete?state=${inviteToken}`;
-    return { redirect_uri: redirectUri, credentialOfferUri };
+    // Store credential offer for the browser completion page
+    this.completions.set(inviteToken, credentialOfferUri);
+
+    // Per OID4VP spec §8.2: return only redirect_uri in the HTTP 200 response.
+    // The wallet opens this URI in the browser. The page shows the credential offer.
+    const redirectUri = `${this.baseUrl}/verifier/complete?state=${encodeURIComponent(inviteToken)}`;
+    return { redirect_uri: redirectUri };
+  }
+
+  // Called by the browser at /verifier/complete to retrieve the credential offer
+  getCompletion(state: string): string | undefined {
+    return this.completions.get(state);
   }
 
   // ── SD-JWT Verification ────────────────────────────────────────────────────
