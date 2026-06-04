@@ -5,10 +5,17 @@ services:
       dockerfile: Dockerfile
     image: eudi-iaa:latest
     restart: unless-stopped
-    env_file: .env.production
     environment:
       PORT: "3000"
       DATABASE_URL: "file:/app/data/db.sqlite"
+      PUBLIC_BASE_URL: "${PUBLIC_BASE_URL}"
+      RP_SIGNING_KEY_PATH: "${RP_SIGNING_KEY_PATH}"
+      RP_ACCESS_CERT_PATH: "${RP_ACCESS_CERT_PATH}"
+      RP_CLIENT_ID: "${RP_CLIENT_ID}"
+      RP_REGISTRATION_CERT_JWT: "${RP_REGISTRATION_CERT_JWT}"
+      JWT_SECRET: "${JWT_SECRET}"
+      JWT_EXPIRY: "${JWT_EXPIRY}"
+      ACCESS_SHARED_SECRET: "${ACCESS_SHARED_SECRET}"
     volumes:
       # SQLite database — persisted across restarts
       - iaa_data:/app/data

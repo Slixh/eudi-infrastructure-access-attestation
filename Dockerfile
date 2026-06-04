@@ -45,4 +45,4 @@ RUN mkdir -p /app/certs
 EXPOSE 3000
 
 # Run schema push on startup, then start the app
-CMD ["sh", "-c", "npx prisma db push --skip-generate && dumb-init node dist/main.js"]
+CMD ["sh", "-c", "npx prisma db push && dumb-init node dist/main.js"]
