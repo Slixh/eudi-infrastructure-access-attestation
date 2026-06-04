@@ -466,6 +466,9 @@ export class IssuerService implements OnModuleInit {
       // authorization_endpoint is required by OIDC Discovery validation even for
       // pre-auth flow where it is never actually called.
       authorization_endpoint: `${base}/authorize`,
+      // Some wallets (e.g., EUDI Wallet) require advertising ABA at the
+      // authorization endpoint explicitly.
+      authorization_endpoint_auth_methods_supported: ['attest_jwt_client_auth'],
       // jwks_uri: wallet fetches this to verify issued credentials (required by OIDC Discovery)
       jwks_uri: `${base}/jwks`,
       grant_types_supported: [
