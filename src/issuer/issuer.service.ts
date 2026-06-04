@@ -93,11 +93,15 @@ export class IssuerService implements OnModuleInit {
 
     const offer = {
       credential_issuer: `${this.baseUrl}/issuer`,
+      // Draft 13+ name; some wallets also check the old Draft ≤12 "credentials" field
       credential_configuration_ids: [EAA_VCT],
+      credentials: [EAA_VCT],
       grants: {
         'urn:ietf:params:oauth:grant-type:pre-authorized_code': {
           'pre-authorized_code': preAuthCode,
-          // tx_code intentionally omitted — no PIN required for this flow
+          // Draft 13: tx_code absent = no PIN
+          // Draft ≤12: user_pin_required must be explicitly false
+          'user_pin_required': false,
         },
       },
     };
