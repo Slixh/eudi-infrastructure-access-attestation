@@ -91,17 +91,16 @@ export class IssuerService implements OnModuleInit {
     const preAuthCode = crypto.randomUUID();
     this.pendingOffers.set(preAuthCode, { grantId, pidSubject, createdAt: new Date() });
 
+    // Strict OID4VCI Draft 13 format.
+    // tx_code absent = no PIN/transaction code required.
+    // user_pin_required is a Draft ≤12 field — omitting it avoids wallets
+    // misinterpreting it as tx_code present.
     const offer = {
       credential_issuer: `${this.baseUrl}/issuer`,
-      // Draft 13+ name; some wallets also check the old Draft ≤12 "credentials" field
       credential_configuration_ids: [EAA_VCT],
-      credentials: [EAA_VCT],
       grants: {
         'urn:ietf:params:oauth:grant-type:pre-authorized_code': {
           'pre-authorized_code': preAuthCode,
-          // Draft 13: tx_code absent = no PIN
-          // Draft ≤12: user_pin_required must be explicitly false
-          'user_pin_required': false,
         },
       },
     };
