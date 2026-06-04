@@ -20,11 +20,6 @@ const STATUS_LABEL: Record<string, string> = {
   REVOKED: 'Widerrufen',
 }
 
-const qrUrl = computed(() =>
-  data.value
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(data.value.deepLink)}`
-    : null,
-)
 </script>
 
 <template>
@@ -62,13 +57,7 @@ const qrUrl = computed(() =>
           Ressource: <strong>{{ data.grant.resourceId }}</strong>
         </p>
 
-        <img
-          :src="qrUrl!"
-          width="240"
-          height="240"
-          alt="Einladungs-QR-Code"
-          class="mx-auto rounded-xl border border-gray-200 dark:border-gray-700 mb-6"
-        >
+        <AppQrCode :value="data.deepLink" :size="240" class="mx-auto mb-6" />
 
         <UButton :to="data.deepLink" size="lg" block class="mb-4">
           In EUDI Wallet öffnen

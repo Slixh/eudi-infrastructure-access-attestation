@@ -35,11 +35,6 @@ const errorConfig = computed(() =>
     : null,
 )
 
-const qrUrl = computed(() =>
-  data.value
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(data.value.offerUri)}`
-    : null,
-)
 </script>
 
 <template>
@@ -83,13 +78,7 @@ const qrUrl = computed(() =>
           <strong>Zugangs-Credential</strong> abzurufen.
         </p>
 
-        <img
-          :src="qrUrl!"
-          width="240"
-          height="240"
-          alt="Credential Offer QR-Code"
-          class="mx-auto rounded-xl border border-gray-200 dark:border-gray-700 mb-6"
-        >
+        <AppQrCode :value="data.offerUri" :size="240" class="mx-auto mb-6" />
 
         <UButton :to="data.offerUri" size="lg" block>
           In EUDI Wallet öffnen
