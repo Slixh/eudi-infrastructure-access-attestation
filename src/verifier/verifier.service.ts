@@ -93,8 +93,9 @@ export class VerifierService implements OnModuleInit {
 
     // Generate ephemeral ECDH key pair — wallet uses the public key to encrypt
     // the VP response. We decrypt it with the private key.
+    // HAIP / German wallet requires ECDH-ES (direct) + A128GCM (not key-wrap variant).
     const { privateKey: ephPriv, publicKey: ephPub } = await generateKeyPair(
-      'ECDH-ES+A256KW',
+      'ECDH-ES',
       { crv: 'P-256', extractable: true },
     );
     const ephPubJwk = await exportJWK(ephPub);
@@ -124,13 +125,13 @@ export class VerifierService implements OnModuleInit {
       nonce,
       state: inviteToken,
       client_metadata: {
-        authorization_encrypted_response_alg: 'ECDH-ES+A256KW',
-        authorization_encrypted_response_enc: 'A256GCM',
+        authorization_encrypted_response_alg: 'ECDH-ES',
+        authorization_encrypted_response_enc: 'A128GCM',
         jwks: {
           keys: [{
             ...ephPubJwk,
             use: 'enc',
-            alg: 'ECDH-ES+A256KW',
+            alg: 'ECDH-ES',
             kid: `eph-${nonce.slice(0, 8)}`,
           }],
         },
@@ -169,7 +170,13 @@ export class VerifierService implements OnModuleInit {
   async handleVpResponse(
     body: Record<string, string>,
   ): Promise<{ redirect_uri: string; credentialOfferUri?: string }> {
-    const { response, state: stateFromForm, vp_token: rawVpToken } = body;
+    const { response, state: stateFromForm, vp_token: rawVpToken, error, error_description } = body;
+
+    // Wallet may POST an error response (e.g. UnsupportedClientMetaData) instead of a VP token
+    if (error) {
+      this.logger.error(`Wallet returned error: ${error} — ${error_description ?? ''}`);
+      throw new BadRequestException(`Wallet error: ${error} — ${error_description ?? ''}`);
+    }
 
     let session: Session | undefined;
     let inviteToken: string;
