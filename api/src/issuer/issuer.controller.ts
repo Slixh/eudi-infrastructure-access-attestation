@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, Headers, Header, Query, Res } from '@nestjs/common';
+import {Controller, Get, Post, Param, Body, Headers, Header, Query, Res, HttpCode, HttpStatus} from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { IssuerService } from './issuer.service';
 import { Response } from 'express';
@@ -38,6 +38,7 @@ export class IssuerController {
 
   // Credential endpoint
   @Post('credential')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'OID4VCI: credential endpoint — issues EAA SD-JWT VC' })
   credential(
     @Headers('authorization') authHeader: string,
