@@ -44,11 +44,17 @@ export class GrantService {
     await this.prisma.grant.update({ where: { id }, data: { inviteToken: token } });
 
     const baseUrl = process.env.PUBLIC_BASE_URL ?? 'http://localhost:3000';
+    // client_id must be present in the deep-link itself (OID4VP §5.2 / HAIP §6).
+    // The wallet checks client_id BEFORE fetching the request_uri.
+    const clientId = process.env.RP_CLIENT_ID ?? '';
+    const requestUri = `${baseUrl}/verifier/request?inviteToken=${token}`;
     // OID4VP Authorization Request deep-link — wallet opens this URL
-    // The VerifierModule serves the actual request_uri behind /verifier/request
-    const deepLink = `openid4vp://authorize?request_uri=${encodeURIComponent(
-      `${baseUrl}/verifier/request?inviteToken=${token}`,
-    )}`;
+    // The VerifierModule serves the actual JAR (request object) behind /verifier/request
+    const deepLink =
+      `openid4vp://authorize` +
+      `?client_id=${encodeURIComponent(clientId)}` +
+      `&client_id_scheme=x509_hash` +
+      `&request_uri=${encodeURIComponent(requestUri)}`;
 
     return { token, deepLink };
   }
