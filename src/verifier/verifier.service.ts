@@ -22,6 +22,7 @@ import * as path from 'path';
 interface Session {
   nonce: string;
   inviteToken: string;
+  kid: string;
   ephemeralPrivateKey: CryptoKey;
   createdAt: Date;
 }
@@ -30,8 +31,10 @@ interface Session {
 export class VerifierService implements OnModuleInit {
   private readonly logger = new Logger(VerifierService.name);
 
-  // Per-request sessions: inviteToken → { nonce, ephemeral decryption key }
-  private readonly sessions = new Map<string, Session>();
+  // Per-request sessions: inviteToken → session
+  // Also indexed by kid for JWE header lookup (wallet may omit state form field)
+  private readonly sessions = new Map<string, Session>();          // key = inviteToken
+  private readonly sessionsByKid = new Map<string, Session>();     // key = kid
 
   // Loaded once at startup
   private signingKeyPem: string;
@@ -96,13 +99,17 @@ export class VerifierService implements OnModuleInit {
     );
     const ephPubJwk = await exportJWK(ephPub);
     const nonce = crypto.randomUUID();
+    const kid = `eph-${nonce.slice(0, 8)}`;
 
-    this.sessions.set(inviteToken, {
+    const session: Session = {
       nonce,
       inviteToken,
+      kid,
       ephemeralPrivateKey: ephPriv,
       createdAt: new Date(),
-    });
+    };
+    this.sessions.set(inviteToken, session);
+    this.sessionsByKid.set(kid, session);
 
     const payload = {
       iss: this.clientId,
@@ -156,45 +163,82 @@ export class VerifierService implements OnModuleInit {
   async handleVpResponse(
     body: Record<string, string>,
   ): Promise<{ redirect_uri: string; credentialOfferUri?: string }> {
-    const { response, state, vp_token: rawVpToken } = body;
-    if (!state) throw new BadRequestException('Missing state');
+    const { response, state: stateFromForm, vp_token: rawVpToken } = body;
 
-    const session = this.sessions.get(state);
-    if (!session) throw new UnauthorizedException('Unknown or expired session');
-
+    let session: Session | undefined;
+    let inviteToken: string;
     let vpToken: string;
 
     if (response) {
-      // ── direct_post.jwt path: decrypt JWE ──
+      // ── direct_post.jwt: decrypt JWE ─────────────────────────────────────
+      // The wallet may omit state as a form field — look it up via kid in the
+      // JWE protected header instead.
+      const jweHeader = JSON.parse(
+        Buffer.from(response.split('.')[0], 'base64url').toString(),
+      );
+      this.logger.debug(`JWE header: ${JSON.stringify(jweHeader)}`);
+
+      if (stateFromForm) {
+        session = this.sessions.get(stateFromForm);
+        inviteToken = stateFromForm;
+      } else if (jweHeader.kid) {
+        session = this.sessionsByKid.get(jweHeader.kid);
+        inviteToken = session?.inviteToken;
+      }
+
+      if (!session) {
+        throw new UnauthorizedException(
+          `No session found — state: ${stateFromForm ?? 'none'}, kid: ${jweHeader.kid ?? 'none'}`,
+        );
+      }
+
       try {
         const { plaintext } = await compactDecrypt(response, session.ephemeralPrivateKey);
         const inner: Record<string, any> = JSON.parse(new TextDecoder().decode(plaintext));
-        if (inner.nonce !== session.nonce) throw new UnauthorizedException('Nonce mismatch');
+        this.logger.debug(`Decrypted VP response keys: ${Object.keys(inner).join(', ')}`);
+
+        // State may also come from inside the JWE payload
+        inviteToken = inviteToken ?? inner.state;
+
+        if (inner.nonce !== session.nonce) {
+          throw new UnauthorizedException(
+            `Nonce mismatch — expected: ${session.nonce}, got: ${inner.nonce}`,
+          );
+        }
+
         vpToken = inner.vp_token ?? inner.vpToken;
       } catch (e) {
         if (e instanceof UnauthorizedException) throw e;
         this.logger.error('JWE decryption failed', String(e));
-        throw new BadRequestException('Failed to decrypt VP response');
+        throw new BadRequestException(`Failed to decrypt VP response: ${String(e)}`);
       }
     } else if (rawVpToken) {
-      // ── direct_post fallback (Erica without encryption) ──
+      // ── direct_post fallback (unencrypted, e.g. Erica) ───────────────────
       this.logger.warn('Received vp_token directly (unencrypted direct_post)');
+      inviteToken = stateFromForm;
+      if (!inviteToken) throw new BadRequestException('Missing state in direct_post fallback');
+      session = this.sessions.get(inviteToken);
+      if (!session) throw new UnauthorizedException('Unknown or expired session');
       vpToken = rawVpToken;
     } else {
       throw new BadRequestException('Missing response or vp_token in body');
     }
 
     if (!vpToken) throw new BadRequestException('vp_token is empty after decryption');
+    if (!inviteToken) throw new BadRequestException('Could not determine invite token / state');
 
     const pidClaims = await this.verifyPidSdJwt(vpToken, session.nonce);
-    this.sessions.delete(state);
+
+    // Clean up both session indexes
+    this.sessions.delete(inviteToken);
+    this.sessionsByKid.delete(session.kid);
 
     this.logger.log(
       `PID verified — ${pidClaims.given_name} ${pidClaims.family_name} (${pidClaims.birthdate})`,
     );
 
-    const grant = await this.grantService.findByInviteToken(state);
-    if (!grant) throw new UnauthorizedException('Grant not found');
+    const grant = await this.grantService.findByInviteToken(inviteToken);
+    if (!grant) throw new UnauthorizedException(`Grant not found for token: ${inviteToken}`);
 
     const pidSubject =
       (pidClaims.sub as string) ??
@@ -202,7 +246,7 @@ export class VerifierService implements OnModuleInit {
 
     const credentialOfferUri = await this.issuerService.createCredentialOffer(grant.id, pidSubject);
 
-    const redirectUri = `${this.baseUrl}/verifier/complete?state=${state}`;
+    const redirectUri = `${this.baseUrl}/verifier/complete?state=${inviteToken}`;
     return { redirect_uri: redirectUri, credentialOfferUri };
   }
 
