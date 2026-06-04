@@ -8,7 +8,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <!-- Logo + title -->
         <NuxtLink to="/" class="flex items-center gap-3 hover:opacity-90 transition-opacity">
-          <img src="/logo.svg" alt="EUDI IAA" class="w-9 h-9" />
+          <AppLogo class="w-9 h-9" />
           <div class="flex flex-col leading-tight">
             <span class="font-bold text-white text-sm tracking-wide">EUDI Access</span>
             <span class="text-blue-100 text-xs">Infrastructure Access Management</span>

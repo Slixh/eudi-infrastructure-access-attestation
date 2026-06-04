@@ -20,7 +20,7 @@ const STATUS_LABEL: Record<string, string> = {
 <template>
   <div class="min-h-dvh bg-gray-50 dark:bg-gray-950 flex flex-col items-center justify-center px-4 py-12">
     <div class="flex items-center gap-2 mb-8">
-      <img src="/logo.svg" alt="EUDI IAA" class="w-8 h-8" />
+      <AppLogo class="w-8 h-8" />
       <span class="font-semibold text-gray-500 dark:text-gray-400 text-sm">EUDI Access Management</span>
     </div>
     <UCard class="w-full max-w-md text-center">
