@@ -466,22 +466,16 @@ export class IssuerService implements OnModuleInit {
       // authorization_endpoint is required by OIDC Discovery validation even for
       // pre-auth flow where it is never actually called.
       authorization_endpoint: `${base}/authorize`,
-      // Some wallets (e.g., EUDI Wallet) require advertising ABA at the
-      // authorization endpoint explicitly.
-      authorization_endpoint_auth_methods_supported: ['attest_jwt_client_auth'],
-      // Explicitly advertise signing algorithms for attestation-based auth
-      authorization_endpoint_auth_signing_alg_values_supported: ['ES256'],
-      // EUDI Wallet expects this exact parameter name for ABA POP JWS algs
-      // Ref: Attestation-Based Client Authentication spec
-      client_attestation_pop_jwt_signing_alg_values_supported: ['ES256'],
+      // Authorization endpoint client authentication — advertise only "none"
+      // to prevent wallets from attempting attestation-based client auth
+      authorization_endpoint_auth_methods_supported: ['none'],
       // jwks_uri: wallet fetches this to verify issued credentials (required by OIDC Discovery)
       jwks_uri: `${base}/jwks`,
       grant_types_supported: [
         'urn:ietf:params:oauth:grant-type:pre-authorized_code',
         'authorization_code',
       ],
-      token_endpoint_auth_methods_supported: ['none', 'attest_jwt_client_auth'],
-      token_endpoint_auth_signing_alg_values_supported: ['ES256'],
+      token_endpoint_auth_methods_supported: ['none'],
       response_types_supported: ['token', 'code'],
       // Hints commonly expected by wallets
       request_parameter_supported: true,
@@ -527,11 +521,8 @@ export class IssuerService implements OnModuleInit {
         'urn:ietf:params:oauth:grant-type:pre-authorized_code',
         'authorization_code',
       ],
-      token_endpoint_auth_methods_supported: ['none', 'attest_jwt_client_auth'],
-      token_endpoint_auth_signing_alg_values_supported: ['ES256'],
-      authorization_endpoint_auth_methods_supported: ['attest_jwt_client_auth'],
-      authorization_endpoint_auth_signing_alg_values_supported: ['ES256'],
-      client_attestation_pop_jwt_signing_alg_values_supported: ['ES256'],
+      token_endpoint_auth_methods_supported: ['none'],
+      authorization_endpoint_auth_methods_supported: ['none'],
       request_parameter_supported: true,
       code_challenge_methods_supported: ['S256', 'plain'],
       scopes_supported: ['openid', 'InfrastructureAccessEAA'],

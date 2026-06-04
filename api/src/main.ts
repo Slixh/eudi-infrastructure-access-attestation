@@ -7,43 +7,49 @@ import { IssuerService } from './issuer/issuer.service';
 import { VerboseExceptionFilter } from './logging.filter';
 import type { Request, Response, NextFunction } from 'express';
 
-// All /.well-known/* paths the wallet may request for OID4VCI / SD-JWT VC discovery.
-// Registered as a raw Express middleware (app.use) so they work regardless of
-// whether NestJS has a matching controller route.
-const WELL_KNOWN_ISSUER_PATHS = new Set([
-  '/.well-known/openid-credential-issuer',
-  '/.well-known/openid-credential-issuer/issuer',
-  '/.well-known/oauth-authorization-server',
-  '/.well-known/oauth-authorization-server/issuer',
-  '/.well-known/openid-configuration',
-  '/.well-known/openid-configuration/issuer',
-]);
-
-const WELL_KNOWN_JWT_VC_PATHS = new Set([
-  '/.well-known/jwt-vc-issuer',
-  '/.well-known/jwt-vc-issuer/issuer',
-]);
+// Centralized well-known routing map → which metadata producer to call.
+// This removes ambiguity and duplication across middleware and controllers.
+type WellKnownHandler = 'issuer' | 'oauth_as' | 'jwt_vc_issuer' | 'oidc_provider_unsupported';
+const WELL_KNOWN_ROUTES: Record<string, WellKnownHandler> = {
+  // OID4VCI Issuer metadata
+  '/.well-known/openid-credential-issuer': 'issuer',
+  '/.well-known/openid-credential-issuer/issuer': 'issuer',
+  // OAuth 2.0 Authorization Server Discovery (RFC 8414)
+  '/.well-known/oauth-authorization-server': 'oauth_as',
+  '/.well-known/oauth-authorization-server/issuer': 'oauth_as',
+  // SD-JWT VC: JWT VC Issuer metadata
+  '/.well-known/jwt-vc-issuer': 'jwt_vc_issuer',
+  '/.well-known/jwt-vc-issuer/issuer': 'jwt_vc_issuer',
+  // Placeholders for classic OIDC OP discovery — currently unsupported, respond 404
+  '/.well-known/openid-configuration': 'oidc_provider_unsupported',
+  '/.well-known/openid-configuration/issuer': 'oidc_provider_unsupported',
+};
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule, { logger: ['log', 'warn', 'error', 'debug', 'verbose'] });
 
   // ── Well-known discovery middleware (registered before NestJS routing) ─────
-  // Must use app.use() here — NestJS MiddlewareConsumer.forRoutes('*') only
-  // applies to registered controller routes, not arbitrary unmatched paths.
+  // Single source of truth: all well-known paths are served here to avoid
+  // shadowing controller routes and to keep behavior consistent.
   const issuerService = app.get(IssuerService);
   app.use((req: Request, res: Response, next: NextFunction) => {
-    if (WELL_KNOWN_ISSUER_PATHS.has(req.path)) {
+    const handler = WELL_KNOWN_ROUTES[req.path];
+    if (handler) {
       res.setHeader('Cache-Control', 'no-store');
-      // Serve the correct document per path
-      if (req.path === '/.well-known/oauth-authorization-server' || req.path === '/.well-known/oauth-authorization-server/issuer') {
-        return res.json(issuerService.getAuthorizationServerMetadata());
+      switch (handler) {
+        case 'issuer':
+          return res.json(issuerService.getIssuerMetadata());
+        case 'oauth_as':
+          return res.json(issuerService.getAuthorizationServerMetadata());
+        case 'jwt_vc_issuer':
+          return res.json(issuerService.getJwtVcIssuerMetadata());
+        case 'oidc_provider_unsupported':
+          return res.status(404).json({
+            error: 'not_found',
+            error_description: 'OpenID Provider discovery is not supported by this service',
+          });
       }
-      return res.json(issuerService.getIssuerMetadata());
-    }
-    if (WELL_KNOWN_JWT_VC_PATHS.has(req.path)) {
-      res.setHeader('Cache-Control', 'no-store');
-      return res.json(issuerService.getJwtVcIssuerMetadata());
     }
     next();
   });
