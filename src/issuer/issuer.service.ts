@@ -284,7 +284,9 @@ export class IssuerService implements OnModuleInit {
       _sd_alg: 'sha-256',
     };
 
-    const header = { alg: 'ES256', typ: 'dc+sd-jwt', jwk: pubJwk };
+    // EudiWalletKit requires either x5c or kid in the SD-JWT header.
+    // kid references our public key in /.well-known/jwt-vc-issuer → jwks.keys[0]
+    const header = { alg: 'ES256', typ: 'dc+sd-jwt', kid: 'issuer-key-1' };
     const h = Buffer.from(JSON.stringify(header)).toString('base64url');
     const p = Buffer.from(JSON.stringify(payload)).toString('base64url');
     const sigInput = `${h}.${p}`;
