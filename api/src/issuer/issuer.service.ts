@@ -469,6 +469,8 @@ export class IssuerService implements OnModuleInit {
       // Some wallets (e.g., EUDI Wallet) require advertising ABA at the
       // authorization endpoint explicitly.
       authorization_endpoint_auth_methods_supported: ['attest_jwt_client_auth'],
+      // Explicitly advertise signing algorithms for attestation-based auth
+      authorization_endpoint_auth_signing_alg_values_supported: ['ES256'],
       // jwks_uri: wallet fetches this to verify issued credentials (required by OIDC Discovery)
       jwks_uri: `${base}/jwks`,
       grant_types_supported: [
@@ -476,7 +478,12 @@ export class IssuerService implements OnModuleInit {
         'authorization_code',
       ],
       token_endpoint_auth_methods_supported: ['none', 'attest_jwt_client_auth'],
+      token_endpoint_auth_signing_alg_values_supported: ['ES256'],
       response_types_supported: ['token', 'code'],
+      // Hints commonly expected by wallets
+      request_parameter_supported: true,
+      code_challenge_methods_supported: ['S256', 'plain'],
+      scopes_supported: ['openid', 'InfrastructureAccessEAA'],
       subject_types_supported: ['public'],
       id_token_signing_alg_values_supported: ['ES256'],
 
