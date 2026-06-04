@@ -2,20 +2,10 @@ import { Injectable, NestMiddleware } from '@nestjs/common';
 import type { Request, Response, NextFunction } from 'express';
 import { IssuerService } from './issuer.service';
 
-// Middleware approach to /.well-known/* discovery endpoints.
-// Runs BEFORE NestJS route matching so it bypasses any routing quirks with
-// dots in path prefixes or playit.gg/Traefik path normalization.
-//
-// Handles all variants that OID4VCI wallets and OAuth clients may request:
-//   /.well-known/openid-credential-issuer          (OID4VCI §11.2, issuer at root)
-//   /.well-known/openid-credential-issuer/issuer   (OID4VCI §11.2, issuer at /issuer)
-//   /.well-known/oauth-authorization-server         (RFC 8414)
-//   /.well-known/oauth-authorization-server/issuer  (RFC 8414, AS at /issuer)
-//   /.well-known/openid-configuration               (OIDC discovery)
-//   /.well-known/openid-configuration/issuer        (OIDC discovery, issuer at /issuer)
 @Injectable()
 export class WellKnownMiddleware implements NestMiddleware {
-  private static readonly HANDLED_PATHS = new Set([
+  // OID4VCI / OAuth AS / OIDC discovery paths
+  private static readonly ISSUER_METADATA_PATHS = new Set([
     '/.well-known/openid-credential-issuer',
     '/.well-known/openid-credential-issuer/issuer',
     '/.well-known/oauth-authorization-server',
@@ -24,19 +14,26 @@ export class WellKnownMiddleware implements NestMiddleware {
     '/.well-known/openid-configuration/issuer',
   ]);
 
+  // SD-JWT VC §4.3 — JWT VC Issuer Metadata (JWKS for credential verification)
+  private static readonly JWT_VC_PATHS = new Set([
+    '/.well-known/jwt-vc-issuer',
+    '/.well-known/jwt-vc-issuer/issuer',
+  ]);
+
   constructor(private readonly issuerService: IssuerService) {}
 
   use(req: Request, res: Response, next: NextFunction) {
-    // Log ALL requests to spot path encoding differences
-    if (req.path.includes('well-known')) {
-      console.log(`[WellKnownMiddleware] path="${req.path}" originalUrl="${req.originalUrl}" handled=${WellKnownMiddleware.HANDLED_PATHS.has(req.path)}`);
-    }
-    if (WellKnownMiddleware.HANDLED_PATHS.has(req.path)) {
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Cache-Control', 'no-store');
-      res.setHeader('X-Served-By', 'WellKnownMiddleware');
+    res.setHeader('Cache-Control', 'no-store');
+
+    if (WellKnownMiddleware.ISSUER_METADATA_PATHS.has(req.path)) {
       return res.json(this.issuerService.getIssuerMetadata());
     }
+
+    if (WellKnownMiddleware.JWT_VC_PATHS.has(req.path)) {
+      // Inline JWKS so the wallet can verify issued SD-JWT VCs offline
+      return res.json(this.issuerService.getJwtVcIssuerMetadata());
+    }
+
     next();
   }
 }

@@ -273,7 +273,7 @@ export class IssuerService implements OnModuleInit {
     });
 
     const payload = {
-      iss:     `${this.baseUrl}/issuer`,
+      iss:     this.baseUrl,   // must match issuer in /.well-known/jwt-vc-issuer
       iat:     now,
       exp:     now + 365 * 24 * 3600,
       vct:     EAA_VCT,
@@ -349,6 +349,17 @@ export class IssuerService implements OnModuleInit {
   // JWKS endpoint — wallet uses this to verify issued SD-JWT VCs
   getJwks() {
     return { keys: [this.publicJwk] };
+  }
+
+  // SD-JWT VC §4.3 — JWT VC Issuer Metadata
+  // Wallet fetches this from /.well-known/jwt-vc-issuer after receiving our credential.
+  // The `issuer` MUST match the `iss` claim in the issued SD-JWT VC.
+  // Inline JWKS allows offline signature verification.
+  getJwtVcIssuerMetadata() {
+    return {
+      issuer: this.baseUrl,
+      jwks: { keys: [this.publicJwk] },
+    };
   }
 
   // DER → JWS signature (R||S, 64 bytes) — copied from VerifierService
