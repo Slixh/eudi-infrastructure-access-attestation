@@ -7,6 +7,7 @@ defineProps<{ class?: string }>()
     viewBox="0 0 312 361"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
+    style="width: 100%; height: 100%; display: block;"
     v-bind="$attrs"
   >
     <path

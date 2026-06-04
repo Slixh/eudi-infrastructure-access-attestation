@@ -18,7 +18,7 @@ export default defineNuxtConfig({
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/panel/favicon.svg' },
       ],
-      titleTemplate: '%s · EUDI Access Management',
+      titleTemplate: '%s · Infrastructure Access Attestation',
     },
   },
 
@@ -27,6 +27,14 @@ export default defineNuxtConfig({
     '@nuxt/fonts',
     '@nuxt/icon',
   ],
+
+  ui: {
+    // Use 'blue' as the base for primary — closest preset to the logo #0162CB.
+    // The exact shade is then overridden via CSS custom properties in main.css.
+    colors: {
+      primary: 'blue',
+    },
+  },
 
   // @nuxt/ui v3 bundles Tailwind CSS v4 automatically.
   // No separate tailwindcss module needed.
