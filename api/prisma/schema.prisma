@@ -18,9 +18,15 @@ model Grant {
   // The resource/lock this grant applies to
   resourceId  String
 
-  // PID subject claim we expect in the Verifiable Presentation
-  // Format matched against VP after OID4VP flow completes
+  // PID subject claim bound after first successful issuance
   pidSubject  String?
+
+  // Optional PID binding — set by admin to restrict issuance to one specific person.
+  // If any of these fields are set, the presented PID must match (case-insensitive
+  // for names, exact for birthdate in ISO-8601 format e.g. "1990-01-15").
+  pidFirstName  String?
+  pidFamilyName String?
+  pidBirthdate  String?
 
   // Invite token is a signed JWT the wallet scans (QR or deep-link)
   // Once redeemed (VP received + EAA issued), status becomes ACTIVE

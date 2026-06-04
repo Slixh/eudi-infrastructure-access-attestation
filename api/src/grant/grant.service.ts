@@ -15,7 +15,13 @@ export class GrantService {
 
   async create(dto: CreateGrantDto) {
     return this.prisma.grant.create({
-      data: { label: dto.label, resourceId: dto.resourceId },
+      data: {
+        label:         dto.label,
+        resourceId:    dto.resourceId,
+        pidFirstName:  dto.pidFirstName  ?? null,
+        pidFamilyName: dto.pidFamilyName ?? null,
+        pidBirthdate:  dto.pidBirthdate  ?? null,
+      },
     });
   }
 

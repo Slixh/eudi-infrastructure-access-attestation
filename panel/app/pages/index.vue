@@ -20,7 +20,13 @@ const { data: grants, refresh } = await useFetch<Grant[]>('/grants', {
 
 // ── Create grant modal ────────────────────────────────────────────────────────
 const modalOpen = ref(false)
-const form = ref({ label: '', resourceId: '' })
+const form = ref({
+  label: '',
+  resourceId: '',
+  pidFirstName: '',
+  pidFamilyName: '',
+  pidBirthdate: '',
+})
 const submitting = ref(false)
 const createdGrant = ref<Grant | null>(null)
 
@@ -38,10 +44,18 @@ const inviteAbsoluteUrl = computed(() => {
 async function createGrant() {
   submitting.value = true
   try {
+    const body: Record<string, string> = {
+      label:      form.value.label,
+      resourceId: form.value.resourceId,
+    }
+    if (form.value.pidFirstName.trim())  body.pidFirstName  = form.value.pidFirstName.trim()
+    if (form.value.pidFamilyName.trim()) body.pidFamilyName = form.value.pidFamilyName.trim()
+    if (form.value.pidBirthdate.trim())  body.pidBirthdate  = form.value.pidBirthdate.trim()
+
     const grant = await $fetch<Grant>('/grants', {
       baseURL: config.public.apiBase,
       method: 'POST',
-      body: form.value,
+      body,
     })
     createdGrant.value = grant
     await refresh()
@@ -51,7 +65,7 @@ async function createGrant() {
 }
 
 function onModalClose() {
-  form.value = { label: '', resourceId: '' }
+  form.value = { label: '', resourceId: '', pidFirstName: '', pidFamilyName: '', pidBirthdate: '' }
   createdGrant.value = null
 }
 
@@ -159,10 +173,42 @@ const columns: TableColumn<Grant>[] = [
               autofocus
             />
           </UFormField>
+
           <UFormField label="Ressource" required>
             <UInput
               v-model="form.resourceId"
               placeholder="z.B. door:building-a:floor-0:server"
+              class="w-full"
+            />
+          </UFormField>
+
+          <USeparator label="PID-Bindung (optional)" />
+
+          <p class="text-xs text-gray-400 -mt-1">
+            Wenn angegeben, wird der Grant nur an diese Person ausgestellt.
+          </p>
+
+          <div class="grid grid-cols-2 gap-3">
+            <UFormField label="Vorname">
+              <UInput
+                v-model="form.pidFirstName"
+                placeholder="Max"
+                class="w-full"
+              />
+            </UFormField>
+            <UFormField label="Nachname">
+              <UInput
+                v-model="form.pidFamilyName"
+                placeholder="Mustermann"
+                class="w-full"
+              />
+            </UFormField>
+          </div>
+
+          <UFormField label="Geburtsdatum">
+            <UInput
+              v-model="form.pidBirthdate"
+              placeholder="1990-01-15"
               class="w-full"
             />
           </UFormField>

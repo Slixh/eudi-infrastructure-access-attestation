@@ -281,6 +281,36 @@ export class VerifierService implements OnModuleInit {
     const grant = await this.grantService.findByInviteToken(inviteToken);
     if (!grant) throw new UnauthorizedException(`Grant not found for token: ${inviteToken}`);
 
+    // ── One-time issuance: ACTIVE grants cannot be re-issued ─────────────────
+    if (grant.status === 'ACTIVE') {
+      throw new UnauthorizedException(
+        `Grant ${grant.id} is already active — credential has already been issued`,
+      );
+    }
+
+    // ── Optional PID binding check ────────────────────────────────────────────
+    // If the admin bound the grant to a specific person, the presented PID must match.
+    const mismatches: string[] = [];
+    if (grant.pidFamilyName) {
+      const expected = grant.pidFamilyName.trim().toLowerCase();
+      const got      = String(pidClaims.family_name ?? '').trim().toLowerCase();
+      if (got !== expected) mismatches.push(`family_name (expected: "${grant.pidFamilyName}", got: "${pidClaims.family_name}")`);
+    }
+    if (grant.pidFirstName) {
+      const expected = grant.pidFirstName.trim().toLowerCase();
+      const got      = String(pidClaims.given_name ?? '').trim().toLowerCase();
+      if (got !== expected) mismatches.push(`given_name (expected: "${grant.pidFirstName}", got: "${pidClaims.given_name}")`);
+    }
+    if (grant.pidBirthdate) {
+      if (pidClaims.birthdate !== grant.pidBirthdate) {
+        mismatches.push(`birthdate (expected: "${grant.pidBirthdate}", got: "${pidClaims.birthdate}")`);
+      }
+    }
+    if (mismatches.length > 0) {
+      this.logger.warn(`PID binding mismatch for grant ${grant.id}: ${mismatches.join(', ')}`);
+      throw new UnauthorizedException(`PID does not match the grant binding: ${mismatches.join('; ')}`);
+    }
+
     const pidSubject =
       (pidClaims.sub as string) ??
       `${pidClaims.given_name}:${pidClaims.family_name}:${pidClaims.birthdate}`;
