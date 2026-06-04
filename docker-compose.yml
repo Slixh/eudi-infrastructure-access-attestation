@@ -1,7 +1,7 @@
 services:
   iaa:
     build:
-      context: .
+      context: ./api
       dockerfile: Dockerfile
     image: eudi-iaa:latest
     restart: unless-stopped
@@ -17,11 +17,9 @@ services:
       JWT_EXPIRY: "${JWT_EXPIRY}"
       ACCESS_SHARED_SECRET: "${ACCESS_SHARED_SECRET}"
     volumes:
-      # SQLite database — persisted across restarts
       - iaa_data:/app/data
-      # Access certificate and signing key — read-only
-      - ./certs/rp-signing.key:/app/certs/rp-signing.key:ro
-      - ./certs/access-certificate.crt:/app/certs/access-certificate.crt:ro
+      - ${CERT_SIGNING_KEY:-./api/certs/rp-signing.key}:/app/certs/rp-signing.key:ro
+      - ${CERT_ACCESS_CERT:-./api/certs/access-certificate.crt}:/app/certs/access-certificate.crt:ro
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=http_network"
@@ -29,6 +27,27 @@ services:
       - "traefik.http.routers.iaa.entrypoints=https"
       - "traefik.http.routers.iaa.tls.certresolver=le"
       - "traefik.http.services.iaa.loadbalancer.server.port=3000"
+    networks:
+      - http_network
+
+  panel:
+    build:
+      context: ./panel
+      dockerfile: Dockerfile
+      args:
+        NUXT_PUBLIC_API_BASE: "https://iaa.eudi.slixh.com"
+    image: eudi-panel:latest
+    restart: unless-stopped
+    environment:
+      NUXT_PUBLIC_API_BASE: "https://iaa.eudi.slixh.com"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=http_network"
+      # More specific rule (PathPrefix) takes priority over the bare iaa router
+      - "traefik.http.routers.panel.rule=Host(`iaa.eudi.slixh.com`) && PathPrefix(`/panel`)"
+      - "traefik.http.routers.panel.entrypoints=https"
+      - "traefik.http.routers.panel.tls.certresolver=le"
+      - "traefik.http.services.panel.loadbalancer.server.port=3000"
     networks:
       - http_network
 

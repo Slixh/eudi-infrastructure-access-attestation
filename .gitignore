@@ -1,11 +1,21 @@
-node_modules/
-dist/
-.env
+# ── api (NestJS) ──────────────────────────────────────────────────────────────
+api/node_modules/
+api/dist/
+api/.env
+api/.env.production
+api/certs/
+api/dev.db
+api/*.tsbuildinfo
+
+# ── panel (Nuxt) ──────────────────────────────────────────────────────────────
+panel/node_modules/
+panel/.nuxt/
+panel/.output/
+panel/.env
+panel/dist/
+
+# ── root ──────────────────────────────────────────────────────────────────────
+dev.db
 /generated/
-certs/*
-.env.production
 signing-input.txt
 signed-schema-metadata.jwt
-dev.db
-*.tsbuildinfo
-
