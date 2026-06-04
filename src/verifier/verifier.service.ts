@@ -206,16 +206,24 @@ export class VerifierService implements OnModuleInit {
           );
         }
 
-        // With DCQL, vp_token is an object { [credentialId]: sdJwtString }
+        // With DCQL, vp_token is an object { [credentialId]: sdJwtString | sdJwtString[] }
         // With presentation_definition, vp_token is a plain string
         const rawVp = inner.vp_token ?? inner.vpToken;
         if (typeof rawVp === 'string') {
           vpToken = rawVp;
-        } else if (rawVp && typeof rawVp === 'object') {
+        } else if (rawVp && typeof rawVp === 'object' && !Array.isArray(rawVp)) {
           // DCQL: pick the first credential value (our query has id = "pid")
-          const values = Object.values(rawVp) as string[];
-          vpToken = values[0];
-          this.logger.debug(`DCQL vp_token keys: ${Object.keys(rawVp).join(', ')}`);
+          // The wallet may send { pid: "sd-jwt" } or { pid: ["sd-jwt"] }
+          const firstVal = Object.values(rawVp)[0] as string | string[];
+          vpToken = Array.isArray(firstVal) ? firstVal[0] : firstVal;
+          this.logger.debug(
+            `DCQL vp_token keys: ${Object.keys(rawVp).join(', ')} ` +
+            `(value type: ${Array.isArray(firstVal) ? 'array' : typeof firstVal})`,
+          );
+        } else if (Array.isArray(rawVp)) {
+          // Top-level array of SD-JWTs
+          vpToken = rawVp[0] as string;
+          this.logger.debug(`vp_token is top-level array, taking first element`);
         } else {
           throw new BadRequestException(`Unexpected vp_token type: ${typeof rawVp}`);
         }
