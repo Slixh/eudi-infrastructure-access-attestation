@@ -149,7 +149,7 @@ export class VerifierService implements OnModuleInit {
         }],
       },
       ...(this.registrationCertJwt && {
-        verifier_info: { format: 'registration_cert', data: this.registrationCertJwt },
+        verifier_info: [{ format: 'registration_cert', data: this.registrationCertJwt }],
       }),
     };
 
