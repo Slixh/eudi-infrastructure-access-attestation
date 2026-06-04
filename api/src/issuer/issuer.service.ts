@@ -394,8 +394,12 @@ export class IssuerService implements OnModuleInit {
     );
 
     return {
-      format: 'dc+sd-jwt',
-      credential,
+      credentials: [
+        {
+          format: 'dc+sd-jwt',
+          credential,
+        }
+      ]
     };
   }
 
