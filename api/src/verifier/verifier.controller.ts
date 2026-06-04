@@ -1,8 +1,7 @@
-import { Controller, Get, Post, Query, Body, Res, Header } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, Res, Header, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { Response } from 'express';
 import { VerifierService } from './verifier.service';
-import { renderCompletePage, renderCompleteNotFoundPage } from '../views/complete-page.view';
 
 @ApiTags('verifier (OID4VP)')
 @Controller('verifier')
@@ -35,9 +34,9 @@ export class VerifierController {
     schema: {
       type: 'object',
       properties: {
-        response:  { type: 'string' },
-        state:     { type: 'string' },
-        error:     { type: 'string' },
+        response:          { type: 'string' },
+        state:             { type: 'string' },
+        error:             { type: 'string' },
         error_description: { type: 'string' },
       },
     },
@@ -46,18 +45,14 @@ export class VerifierController {
     return this.verifierService.handleVpResponse(body);
   }
 
-  // Browser lands here after the wallet POSTs the VP response.
-  // Renders an HTML page with the OID4VCI credential offer deep-link.
-  // The wallet (same-device) or user (cross-device) taps the link to collect the EAA.
+  // Panel completion page fetches this to get the credential offer URI.
+  // Returns { offerUri } — the panel renders the QR code and button.
   @Get('complete')
-  @ApiOperation({ summary: 'Credential offer page shown to user after VP presentation' })
-  complete(@Query('state') state: string, @Res() res: Response) {
+  @ApiOperation({ summary: 'OID4VP: get credential offer URI after VP presentation' })
+  @ApiQuery({ name: 'state', required: true })
+  getCompletion(@Query('state') state: string) {
     const offerUri = this.verifierService.getCompletion(state);
-
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    if (!offerUri) {
-      return res.status(404).send(renderCompleteNotFoundPage());
-    }
-    res.send(renderCompletePage(offerUri));
+    if (!offerUri) throw new NotFoundException('Session not found or already consumed');
+    return { offerUri };
   }
 }

@@ -1,9 +1,7 @@
-import { Controller, Get, Post, Delete, Param, Body, Res } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { Response } from 'express';
 import { GrantService } from './grant.service';
 import { CreateGrantDto } from './dto/create-grant.dto';
-import { renderInvitePage } from '../views/invite-page.view';
 
 @ApiTags('grants')
 @Controller('grants')
@@ -33,20 +31,22 @@ export class GrantController {
     return this.grantService.revoke(id);
   }
 
-  // POST: generate/rotate the invite token (API — returns JSON)
-  @Post(':id/invite')
-  @ApiOperation({ summary: 'Generate invite token + OID4VP deep-link (JSON)' })
-  generateInvite(@Param('id') id: string) {
-    return this.grantService.generateInviteToken(id);
+  // GET: returns grant details + a fresh invite token + deep-link (JSON)
+  // Used by the panel invite page to render the QR code.
+  @Get(':id/invite')
+  @ApiOperation({ summary: 'Get grant details + OID4VP invite deep-link (JSON)' })
+  async getInvite(@Param('id') id: string) {
+    const [grant, { token, deepLink }] = await Promise.all([
+      this.grantService.findOne(id),
+      this.grantService.generateInviteToken(id),
+    ]);
+    return { grant, token, deepLink };
   }
 
-  // GET: show invite page with QR code (browser-friendly HTML)
-  @Get(':id/invite')
-  @ApiOperation({ summary: 'Invite page with QR code for EUDI Wallet' })
-  async invitePage(@Param('id') id: string, @Res() res: Response) {
-    const grant = await this.grantService.findOne(id);
-    const { deepLink } = await this.grantService.generateInviteToken(id);
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(renderInvitePage(grant, deepLink));
+  // POST: generate/rotate the invite token (also returns JSON — kept for API clients)
+  @Post(':id/invite')
+  @ApiOperation({ summary: 'Rotate invite token + OID4VP deep-link (JSON)' })
+  generateInvite(@Param('id') id: string) {
+    return this.grantService.generateInviteToken(id);
   }
 }

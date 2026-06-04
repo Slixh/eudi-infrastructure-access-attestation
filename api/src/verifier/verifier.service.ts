@@ -292,7 +292,7 @@ export class VerifierService implements OnModuleInit {
 
     // Per OID4VP spec §8.2: return only redirect_uri in the HTTP 200 response.
     // The wallet opens this URI in the browser. The page shows the credential offer.
-    const redirectUri = `${this.baseUrl}/verifier/complete?state=${encodeURIComponent(inviteToken)}`;
+    const redirectUri = `${this.baseUrl}/panel/verifier/complete?state=${encodeURIComponent(inviteToken)}`;
     return { redirect_uri: redirectUri };
   }
 
