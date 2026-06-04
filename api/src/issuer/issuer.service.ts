@@ -320,7 +320,7 @@ export class IssuerService implements OnModuleInit {
       grant_types_supported: [
         'urn:ietf:params:oauth:grant-type:pre-authorized_code',
       ],
-      token_endpoint_auth_methods_supported: ['none'],
+      token_endpoint_auth_methods_supported: ['none', 'attest_jwt_client_auth'],
       response_types_supported: ['token'],
       subject_types_supported: ['public'],
       id_token_signing_alg_values_supported: ['ES256'],
