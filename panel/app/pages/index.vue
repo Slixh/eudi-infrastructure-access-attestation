@@ -4,6 +4,7 @@ import type { TableColumn } from '@nuxt/ui'
 
 const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
+const UIcon  = resolveComponent('UIcon')
 
 interface Grant {
   id: string
@@ -11,6 +12,9 @@ interface Grant {
   resourceId: string
   status: 'PENDING' | 'ACTIVE' | 'REVOKED'
   createdAt: string
+  pidFirstName:  string | null
+  pidFamilyName: string | null
+  pidBirthdate:  string | null
 }
 
 const config = useRuntimeConfig()
@@ -74,6 +78,23 @@ const columns: TableColumn<Grant>[] = [
   {
     accessorKey: 'label',
     header: 'Bezeichnung',
+    cell: ({ row }) => {
+      const { label, pidFirstName, pidFamilyName, pidBirthdate } = row.original
+      const hasPid = pidFirstName || pidFamilyName || pidBirthdate
+
+      const nameParts = [pidFirstName, pidFamilyName].filter(Boolean).join(' ')
+      const pidLine   = [nameParts, pidBirthdate].filter(Boolean).join(' · ')
+
+      if (!hasPid) return h('span', label)
+
+      return h('div', { class: 'flex flex-col gap-0.5' }, [
+        h('span', label),
+        h('span', { class: 'flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500' }, [
+          h(UIcon, { name: 'heroicons:user', class: 'w-3 h-3 shrink-0' }),
+          h('span', pidLine),
+        ]),
+      ])
+    },
   },
   {
     accessorKey: 'resourceId',
