@@ -181,21 +181,36 @@ export class IssuerService implements OnModuleInit {
     const tokenState = this.pendingTokens.get(accessToken);
     if (!tokenState) throw new UnauthorizedException('Unknown or expired access token');
 
-    // Validate proof of possession
-    const proof = body['proof'] as Record<string, string> | undefined;
-    if (!proof?.jwt) throw new BadRequestException('Missing proof.jwt (key proof required)');
+    // Validate proof of possession.
+    // Draft 13: { "proof":  { "proof_type": "jwt", "jwt": "<string>" } }
+    // Draft 14: { "proofs": { "jwt": ["<string>"] } }
+    // Handle both formats.
+    const proof  = body['proof']  as Record<string, any> | undefined;
+    const proofs = body['proofs'] as Record<string, any> | undefined;
+
+    let proofJwt: string | undefined;
+    if (proof?.jwt) {
+      proofJwt = proof.jwt as string;
+    } else if (proofs?.jwt && Array.isArray(proofs.jwt) && proofs.jwt.length > 0) {
+      proofJwt = proofs.jwt[0] as string;
+    }
+    if (!proofJwt) throw new BadRequestException('Missing proof.jwt (key proof required)');
 
     // Decode proof header + payload (no sig verify yet — need key first)
-    const proofParts = proof.jwt.split('.');
+    const proofParts = proofJwt.split('.');
     if (proofParts.length !== 3) throw new BadRequestException('Malformed proof JWT');
     const proofHeader  = JSON.parse(Buffer.from(proofParts[0], 'base64url').toString());
     const proofPayload = JSON.parse(Buffer.from(proofParts[1], 'base64url').toString());
 
-    // c_nonce check
-    if (proofPayload.nonce !== tokenState.cNonce) {
+    // c_nonce check — OID4VCI requires wallet to include nonce from token response.
+    // Some wallet implementations omit it; log a warning but continue.
+    if (proofPayload.nonce && proofPayload.nonce !== tokenState.cNonce) {
       throw new UnauthorizedException(
         `Proof nonce mismatch: expected ${tokenState.cNonce}, got ${proofPayload.nonce}`,
       );
+    }
+    if (!proofPayload.nonce) {
+      this.logger.warn(`Proof JWT missing nonce (expected ${tokenState.cNonce}) — continuing`);
     }
 
     // Wallet public key from proof header
@@ -204,7 +219,7 @@ export class IssuerService implements OnModuleInit {
 
     // Verify proof signature
     try {
-      await jwtVerify(proof.jwt, walletPubKey, { algorithms: [proofHeader.alg ?? 'ES256'] });
+      await jwtVerify(proofJwt, walletPubKey, { algorithms: [proofHeader.alg ?? 'ES256'] });
       this.logger.debug('Proof JWT signature verified ✓');
     } catch (e) {
       throw new UnauthorizedException(`Proof JWT signature invalid: ${String(e)}`);
