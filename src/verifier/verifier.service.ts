@@ -376,10 +376,12 @@ export class VerifierService implements OnModuleInit {
       if (issuerPayload.cnf?.jwk) {
         try {
           const { importJWK } = await import('jose');
-          const walletPubKey = await importJWK(issuerPayload.cnf.jwk);
           const [kbH] = kbJwt.split('.');
           const kbHeader = JSON.parse(Buffer.from(kbH, 'base64url').toString());
-          await jwtVerify(kbJwt, walletPubKey, { algorithms: [kbHeader.alg ?? 'ES256'] });
+          const alg = kbHeader.alg ?? issuerPayload.cnf.jwk.alg ?? 'ES256';
+          // importJWK requires alg when it is not present in the JWK itself
+          const walletPubKey = await importJWK(issuerPayload.cnf.jwk, alg);
+          await jwtVerify(kbJwt, walletPubKey, { algorithms: [alg] });
           this.logger.log('KB-JWT signature verified ✓');
         } catch (e) {
           this.logger.error('KB-JWT signature verification failed', String(e));
