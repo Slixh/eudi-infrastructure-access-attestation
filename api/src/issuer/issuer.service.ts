@@ -471,6 +471,9 @@ export class IssuerService implements OnModuleInit {
       authorization_endpoint_auth_methods_supported: ['attest_jwt_client_auth'],
       // Explicitly advertise signing algorithms for attestation-based auth
       authorization_endpoint_auth_signing_alg_values_supported: ['ES256'],
+      // EUDI Wallet expects this exact parameter name for ABA POP JWS algs
+      // Ref: Attestation-Based Client Authentication spec
+      client_attestation_pop_jwt_signing_alg_values_supported: ['ES256'],
       // jwks_uri: wallet fetches this to verify issued credentials (required by OIDC Discovery)
       jwks_uri: `${base}/jwks`,
       grant_types_supported: [
