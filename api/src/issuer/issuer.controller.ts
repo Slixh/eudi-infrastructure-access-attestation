@@ -1,11 +1,24 @@
-import { Controller, Get, Post, Param, Body, Headers, Header } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Headers, Header, Query, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { IssuerService } from './issuer.service';
+import { Response } from 'express';
 
 @ApiTags('issuer (OID4VCI)')
 @Controller('issuer')
 export class IssuerController {
   constructor(private readonly issuerService: IssuerService) {}
+
+  // OAuth 2.0 /authorize endpoint (ABA client authentication)
+  // Supports response_type=code with attestation-based client authentication.
+  @Get('authorize')
+  @ApiOperation({ summary: 'OIDC/OAuth2: authorize endpoint (attestation-based client auth)' })
+  authorize(
+    @Query() query: Record<string, string>,
+    @Headers() headers: Record<string, string>,
+    @Res() res: Response,
+  ) {
+    return this.issuerService.handleAuthorizeRequest(query, headers, res);
+  }
 
   // Wallet fetches offer object when using credential_offer_uri parameter
   @Get('offers/:preAuthCode')

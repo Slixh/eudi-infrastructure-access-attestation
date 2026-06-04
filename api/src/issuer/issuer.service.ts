@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { GrantService } from '../grant/grant.service';
 import { signCompact } from '../common/jwt.util';
 import { importJWK, jwtVerify } from 'jose';
+import type { Response } from 'express';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -42,6 +43,17 @@ interface TokenState {
   createdAt: Date;
 }
 
+interface AuthCodeState {
+  // OAuth 2.0 authorization code flow (for ABA demo)
+  redirectUri: string;
+  codeChallenge?: string;
+  codeChallengeMethod?: string;
+  scope?: string;
+  state?: string;
+  clientJwk?: Record<string, unknown>; // from attestation
+  createdAt: Date;
+}
+
 @Injectable()
 export class IssuerService implements OnModuleInit {
   private readonly logger = new Logger(IssuerService.name);
@@ -49,6 +61,7 @@ export class IssuerService implements OnModuleInit {
   // In-memory stores (15-min TTL)
   private readonly pendingOffers = new Map<string, OfferState>();
   private readonly pendingTokens = new Map<string, TokenState>();
+  private readonly pendingAuthCodes = new Map<string, AuthCodeState>();
 
   private signingKeyPem: string;
   private baseUrl: string;
@@ -86,9 +99,78 @@ export class IssuerService implements OnModuleInit {
       for (const [k, v] of this.pendingTokens) {
         if (v.createdAt.getTime() < cutoff) this.pendingTokens.delete(k);
       }
+      for (const [k, v] of this.pendingAuthCodes) {
+        if (v.createdAt.getTime() < cutoff) this.pendingAuthCodes.delete(k);
+      }
     }, 60_000).unref();
 
     this.logger.log(`Issuer ready — ${this.baseUrl}/issuer`);
+  }
+
+  // ── OAuth2 Authorize endpoint (ABA client authentication demo) ────────────
+  // Minimal implementation to satisfy wallets validating the discovery doc.
+  // Supports response_type=code and client attestation via client_assertion
+  // using the experimental "attest_jwt_client_auth" value.
+  handleAuthorizeRequest(
+    query: Record<string, string>,
+    headers: Record<string, string>,
+    res: Response,
+  ) {
+    const responseType = query['response_type'];
+    const redirectUri  = query['redirect_uri'];
+    const state        = query['state'];
+    const scope        = query['scope'];
+    const codeChallenge       = query['code_challenge'];
+    const codeChallengeMethod = query['code_challenge_method'];
+    const clientAssertionType = query['client_assertion_type'];
+    const clientAssertion     = query['client_assertion'];
+
+    if (!responseType || responseType !== 'code') {
+      throw new BadRequestException('response_type=code is required');
+    }
+    if (!redirectUri) throw new BadRequestException('redirect_uri is required');
+
+    // Validate attestation-based client authentication (minimal checks)
+    if (clientAssertionType && clientAssertionType !== 'attest_jwt_client_auth') {
+      throw new BadRequestException('Unsupported client_assertion_type');
+    }
+
+    let clientJwk: Record<string, unknown> | undefined;
+    if (clientAssertion) {
+      try {
+        const [hB64, pB64] = clientAssertion.split('.');
+        const hdr = JSON.parse(Buffer.from(hB64, 'base64url').toString());
+        const pl  = JSON.parse(Buffer.from(pB64, 'base64url').toString());
+        // For demo purposes, accept unsigned/unknown issuer, but require a jwk in header
+        if (!hdr.jwk) throw new Error('attestation missing jwk');
+        clientJwk = hdr.jwk;
+        // Basic freshness checks if present
+        if (pl.exp && typeof pl.exp === 'number' && pl.exp < Math.floor(Date.now()/1000)) {
+          throw new Error('attestation expired');
+        }
+      } catch (e) {
+        throw new UnauthorizedException(`Invalid client attestation: ${String(e)}`);
+      }
+    }
+
+    // Create authorization code and store session
+    const code = crypto.randomBytes(24).toString('base64url');
+    this.pendingAuthCodes.set(code, {
+      redirectUri,
+      codeChallenge,
+      codeChallengeMethod,
+      scope,
+      state,
+      clientJwk,
+      createdAt: new Date(),
+    });
+
+    // Redirect back with code (+ state if provided)
+    const url = new URL(redirectUri);
+    url.searchParams.set('code', code);
+    if (state) url.searchParams.set('state', state);
+
+    res.status(302).header('Location', url.toString()).send();
   }
 
   // ── 1. Create credential offer ─────────────────────────────────────────────
@@ -135,38 +217,107 @@ export class IssuerService implements OnModuleInit {
   // ── 3. Token endpoint ──────────────────────────────────────────────────────
   async handleTokenRequest(body: Record<string, string>): Promise<Record<string, unknown>> {
     const grantType = body['grant_type'];
-    const preAuthCode = body['pre-authorized_code'];
 
-    if (grantType !== 'urn:ietf:params:oauth:grant-type:pre-authorized_code') {
-      throw new BadRequestException(`Unsupported grant_type: ${grantType}`);
+    // ── Pre-Authorized Code (OID4VCI) ───────────────────────────────────────
+    if (grantType === 'urn:ietf:params:oauth:grant-type:pre-authorized_code') {
+      const preAuthCode = body['pre-authorized_code'];
+      if (!preAuthCode) throw new BadRequestException('Missing pre-authorized_code');
+
+      const offerState = this.pendingOffers.get(preAuthCode);
+      if (!offerState) throw new UnauthorizedException('Unknown or expired pre-authorized_code');
+
+      // One-time use — delete immediately
+      this.pendingOffers.delete(preAuthCode);
+
+      const accessToken = `iat.${crypto.randomBytes(24).toString('base64url')}`;
+      const cNonce = crypto.randomUUID();
+
+      this.pendingTokens.set(accessToken, {
+        grantId: offerState.grantId,
+        pidSubject: offerState.pidSubject,
+        cNonce,
+        createdAt: new Date(),
+      });
+
+      this.logger.log(`Token issued for grant ${offerState.grantId}`);
+
+      return {
+        access_token: accessToken,
+        token_type: 'Bearer',
+        expires_in: 300,
+        c_nonce: cNonce,
+        c_nonce_expires_in: 300,
+      };
     }
-    if (!preAuthCode) throw new BadRequestException('Missing pre-authorized_code');
 
-    const offerState = this.pendingOffers.get(preAuthCode);
-    if (!offerState) throw new UnauthorizedException('Unknown or expired pre-authorized_code');
+    // ── Authorization Code (ABA demo) ───────────────────────────────────────
+    if (grantType === 'authorization_code') {
+      const code = body['code'];
+      const codeVerifier = body['code_verifier'];
+      const clientAssertionType = body['client_assertion_type'];
+      const clientAssertion     = body['client_assertion'];
 
-    // One-time use — delete immediately
-    this.pendingOffers.delete(preAuthCode);
+      const session = code ? this.pendingAuthCodes.get(code) : undefined;
+      if (!session) throw new UnauthorizedException('Invalid or expired authorization code');
 
-    const accessToken = `iat.${crypto.randomBytes(24).toString('base64url')}`;
-    const cNonce = crypto.randomUUID();
+      // PKCE validation if provided
+      if (session.codeChallenge) {
+        if (!codeVerifier) throw new UnauthorizedException('code_verifier required');
+        const hashed = session.codeChallengeMethod === 'S256'
+          ? crypto.createHash('sha256').update(codeVerifier).digest('base64url')
+          : codeVerifier;
+        if (hashed !== session.codeChallenge) {
+          throw new UnauthorizedException('PKCE verification failed');
+        }
+      }
 
-    this.pendingTokens.set(accessToken, {
-      grantId: offerState.grantId,
-      pidSubject: offerState.pidSubject,
-      cNonce,
-      createdAt: new Date(),
-    });
+      // ABA: require attestation assertion
+      if (clientAssertionType !== 'attest_jwt_client_auth' || !clientAssertion) {
+        throw new UnauthorizedException('attestation-based client authentication required');
+      }
+      // Minimal check: ensure assertion header carries a jwk and, if present in session, it matches
+      try {
+        const [hB64] = clientAssertion.split('.');
+        const hdr = JSON.parse(Buffer.from(hB64, 'base64url').toString());
+        if (!hdr.jwk) throw new Error('missing jwk');
+        if (session.clientJwk) {
+          // naive match by JWK thumbprint material
+          const k1 = JSON.stringify(session.clientJwk);
+          const k2 = JSON.stringify(hdr.jwk);
+          if (k1 !== k2) throw new Error('attested key mismatch');
+        }
+      } catch (e) {
+        throw new UnauthorizedException(`Invalid client attestation: ${String(e)}`);
+      }
 
-    this.logger.log(`Token issued for grant ${offerState.grantId}`);
+      // For demo, bind issued token to a synthetic grant. In this server, VC issuance
+      // is rooted in a grant created elsewhere. We won't issue a VC via this path,
+      // but we return an access token + c_nonce so wallets can proceed to credential endpoint
+      // if they also performed the pre-auth flow. Therefore, just mint a token without grant.
+      const accessToken = `iat.${crypto.randomBytes(24).toString('base64url')}`;
+      const cNonce = crypto.randomUUID();
 
-    return {
-      access_token: accessToken,
-      token_type: 'Bearer',
-      expires_in: 300,
-      c_nonce: cNonce,
-      c_nonce_expires_in: 300,
-    };
+      // Store token with empty grant/subject; credential endpoint will reject if used there.
+      this.pendingTokens.set(accessToken, {
+        grantId: 'N/A',
+        pidSubject: 'N/A',
+        cNonce,
+        createdAt: new Date(),
+      });
+
+      // One-time use — delete auth code
+      this.pendingAuthCodes.delete(code!);
+
+      return {
+        access_token: accessToken,
+        token_type: 'Bearer',
+        expires_in: 300,
+        c_nonce: cNonce,
+        c_nonce_expires_in: 300,
+      };
+    }
+
+    throw new BadRequestException(`Unsupported grant_type: ${grantType}`);
   }
 
   // ── 4. Credential endpoint ─────────────────────────────────────────────────
@@ -319,9 +470,10 @@ export class IssuerService implements OnModuleInit {
       jwks_uri: `${base}/jwks`,
       grant_types_supported: [
         'urn:ietf:params:oauth:grant-type:pre-authorized_code',
+        'authorization_code',
       ],
       token_endpoint_auth_methods_supported: ['none', 'attest_jwt_client_auth'],
-      response_types_supported: ['token'],
+      response_types_supported: ['token', 'code'],
       subject_types_supported: ['public'],
       id_token_signing_alg_values_supported: ['ES256'],
 
