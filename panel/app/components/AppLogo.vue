@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ class?: string }>()
+defineOptions({ inheritAttrs: false })
 </script>
 
 <template>
@@ -7,6 +7,8 @@ defineProps<{ class?: string }>()
     viewBox="0 0 312 361"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
+    width="28"
+    height="28"
     v-bind="$attrs"
   >
     <path

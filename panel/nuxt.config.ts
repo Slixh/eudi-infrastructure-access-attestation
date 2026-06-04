@@ -14,12 +14,6 @@ export default defineNuxtConfig({
 
   app: {
     baseURL: '/panel/',
-    head: {
-      link: [
-        { rel: 'icon', type: 'image/svg+xml', href: '/panel/favicon.svg' },
-      ],
-      titleTemplate: '%s · Infrastructure Access Attestation',
-    },
   },
 
   modules: [

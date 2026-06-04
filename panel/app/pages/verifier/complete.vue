@@ -12,11 +12,7 @@ const { data, error: fetchError } = errorCode
 </script>
 
 <template>
-  <div class="min-h-dvh bg-gray-50 dark:bg-gray-950 flex flex-col items-center justify-center px-4 py-12">
-    <div class="flex items-center gap-2 mb-8">
-      <AppLogo class="w-8 h-8" />
-      <span class="font-semibold text-gray-500 dark:text-gray-400 text-sm">Infrastructure Access Attestation</span>
-    </div>
+  <div class="min-h-dvh bg-gray-50 dark:bg-gray-950 flex items-center justify-center px-4 py-12">
     <UCard class="max-w-md w-full">
 
       <VerifierCompleteError
