@@ -273,10 +273,25 @@ export class IssuerService implements OnModuleInit {
 
   // ── Issuer metadata (/.well-known/openid-credential-issuer) ───────────────
   getIssuerMetadata() {
+    const base = `${this.baseUrl}/issuer`;
     return {
-      credential_issuer: `${this.baseUrl}/issuer`,
-      credential_endpoint: `${this.baseUrl}/issuer/credential`,
-      token_endpoint: `${this.baseUrl}/issuer/token`,
+      // OID4VCI §11 — Credential Issuer Metadata
+      credential_issuer: base,
+      credential_endpoint: `${base}/credential`,
+      token_endpoint: `${base}/token`,
+
+      // RFC 8414 / OIDC Discovery — required for wallet to discover pre-auth grant type.
+      // Without grant_types_supported including pre-authorized_code, the wallet falls
+      // back to authorization code flow and shows a "login at service" dialog.
+      grant_types_supported: [
+        'urn:ietf:params:oauth:grant-type:pre-authorized_code',
+      ],
+      // No client authentication required for pre-auth flow
+      token_endpoint_auth_methods_supported: ['none'],
+      // OIDC / RFC 8414 required fields
+      issuer: base,
+      response_types_supported: ['token'],
+
       credential_configurations_supported: {
         [EAA_VCT]: {
           format: 'dc+sd-jwt',
