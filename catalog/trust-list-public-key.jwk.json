@@ -1,0 +1,9 @@
+{
+  "kty": "EC",
+  "x": "FiPEa3UKWnAQKzPK6FK5xeW_PeQ9Zc_dTKk9l7A4x2Q",
+  "y": "Ec6f1LsETC8chW6UHwtg_FqXhT1q5hEcbC9O7FQqrHI",
+  "crv": "P-256",
+  "kid": "x509_hash:zg3RYAdYIaceLuO3D62DIQHThPXw_aSIhWp87Xz7ZtU",
+  "use": "sig",
+  "alg": "ES256"
+}

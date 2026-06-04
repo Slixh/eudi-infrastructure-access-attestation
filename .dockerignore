@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+dev.db
+*.db
+certs/
+signing-input.txt
+signed-schema-metadata.jwt
+catalog/trust-list.jwt
+.git/

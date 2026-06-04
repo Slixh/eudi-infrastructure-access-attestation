@@ -1,0 +1,33 @@
+services:
+  iaa:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: eudi-iaa:latest
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      PORT: "3000"
+      DATABASE_URL: "file:/app/data/db.sqlite"
+    volumes:
+      # SQLite database — persisted across restarts
+      - iaa_data:/app/data
+      # Access certificate and signing key — read-only
+      - ./certs/rp-signing.key:/app/certs/rp-signing.key:ro
+      - ./certs/access-certificate.crt:/app/certs/access-certificate.crt:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=http_network"
+      - "traefik.http.routers.iaa.rule=Host(`iaa.eudi.slixh.com`)"
+      - "traefik.http.routers.iaa.entrypoints=https"
+      - "traefik.http.routers.iaa.tls.certresolver=le"
+      - "traefik.http.services.iaa.loadbalancer.server.port=3000"
+    networks:
+      - http_network
+
+volumes:
+  iaa_data:
+
+networks:
+  http_network:
+    external: true

@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// A Grant represents permission for one person (identified by PID) to access one resource
+model Grant {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Human-readable label set by the admin (e.g. "Front door – John Doe")
+  label       String
+
+  // The resource/lock this grant applies to
+  resourceId  String
+
+  // PID subject claim we expect in the Verifiable Presentation
+  // Format matched against VP after OID4VP flow completes
+  pidSubject  String?
+
+  // Invite token is a signed JWT the wallet scans (QR or deep-link)
+  // Once redeemed (VP received + EAA issued), status becomes ACTIVE
+  status      GrantStatus @default(PENDING)
+
+  inviteToken String?  @unique
+
+  // Credential ID of the issued EAA, used for revocation
+  credentialId String?
+
+  AccessLog   AccessLog[]
+}
+
+enum GrantStatus {
+  PENDING
+  ACTIVE
+  REVOKED
+}
+
+// Append-only log of every access attempt
+model AccessLog {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  grantId    String
+  grant      Grant    @relation(fields: [grantId], references: [id])
+  success    Boolean
+  reason     String?
+}

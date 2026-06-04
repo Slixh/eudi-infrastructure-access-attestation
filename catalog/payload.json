@@ -1,0 +1,37 @@
+{
+  "id": "https://sandbox.eudi-wallet.org/api/schema-metadata/ead4ac25-8682-4bb5-82ea-aaa19abcace8",
+  "version": "1.0.0",
+  "rulebookURI": "https://sandbox.eudi-wallet.org/api/schema-metadata/assets/rulebooks/Olp0XpKguC0lQJls.md",
+  "rulebookIntegrity": "sha256-YIulNPtMdwUpICSV1qQDoSwQ9fWCTwz6YN82LnxK98c=",
+  "trustedAuthorities": [
+    {
+      "frameworkType": "etsi_tl",
+      "value": "https://trust.eudi.slixh.com/trust-list.jwt",
+      "verificationMethod": {
+        "type": "JsonWebKey2020",
+        "publicKeyJwk": {
+          "kty": "EC",
+          "x": "J8fy-YIUS35nrfK6A4qtQtXLkquYcIOCP8CvoMWUVrg",
+          "y": "-Qw4d-D-ggQ7ejsgpoirZNmeBDgeNsjrEovf-rIr6yA",
+          "crv": "P-256",
+          "kid": "x509_hash:eMJ77WT4UF3UM2PoACVEdITQMg-MLs2og-pINwgJ5GI",
+          "use": "sig",
+          "alg": "ES256"
+        }
+      }
+    }
+  ],
+  "attestationLoS": "iso_18045_basic",
+  "bindingType": "key",
+  "schemaURIs": [
+    {
+      "uri": "https://sandbox.eudi-wallet.org/api/schema-metadata/assets/schemas/w3r2bnrruE9GP8s3.json",
+      "integrity": "sha256-5g99JgNj0N/fIWxYEEzud1AroEWO6DX3QrCm1YOPvUE=",
+      "formatIdentifier": "dc+sd-jwt",
+      "meta": {
+        "vct": "urn:eudi:eaa:infrastructure:access:1"
+      }
+    }
+  ],
+  "iat": 1780570821
+}
