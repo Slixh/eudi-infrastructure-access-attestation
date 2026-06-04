@@ -213,7 +213,10 @@ export class VerifierService implements OnModuleInit {
         // State may also come from inside the JWE payload
         inviteToken = inviteToken ?? inner.state;
 
-        if (inner.nonce !== session.nonce) {
+        // The nonce may or may not be in the outer JWE payload.
+        // German reference wallet puts it only in the KB-JWT (verified later in verifyPidSdJwt).
+        // If present here, do an early sanity check.
+        if (inner.nonce !== undefined && inner.nonce !== session.nonce) {
           throw new UnauthorizedException(
             `Nonce mismatch — expected: ${session.nonce}, got: ${inner.nonce}`,
           );
@@ -363,9 +366,10 @@ export class VerifierService implements OnModuleInit {
           const [kbH] = kbJwt.split('.');
           const kbHeader = JSON.parse(Buffer.from(kbH, 'base64url').toString());
           await jwtVerify(kbJwt, walletPubKey, { algorithms: [kbHeader.alg ?? 'ES256'] });
-          this.logger.debug('KB-JWT signature verified');
+          this.logger.log('KB-JWT signature verified ✓');
         } catch (e) {
-          this.logger.warn('KB-JWT signature verification failed (non-fatal in sandbox)', String(e));
+          this.logger.error('KB-JWT signature verification failed', String(e));
+          throw new UnauthorizedException('KB-JWT signature is invalid');
         }
       }
     }
