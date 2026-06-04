@@ -195,7 +195,7 @@ export class VerifierService implements OnModuleInit {
       try {
         const { plaintext } = await compactDecrypt(response, session.ephemeralPrivateKey);
         const inner: Record<string, any> = JSON.parse(new TextDecoder().decode(plaintext));
-        this.logger.debug(`Decrypted VP response keys: ${Object.keys(inner).join(', ')}`);
+        this.logger.debug(`Decrypted inner payload: ${JSON.stringify(inner)}`);
 
         // State may also come from inside the JWE payload
         inviteToken = inviteToken ?? inner.state;
@@ -206,7 +206,19 @@ export class VerifierService implements OnModuleInit {
           );
         }
 
-        vpToken = inner.vp_token ?? inner.vpToken;
+        // With DCQL, vp_token is an object { [credentialId]: sdJwtString }
+        // With presentation_definition, vp_token is a plain string
+        const rawVp = inner.vp_token ?? inner.vpToken;
+        if (typeof rawVp === 'string') {
+          vpToken = rawVp;
+        } else if (rawVp && typeof rawVp === 'object') {
+          // DCQL: pick the first credential value (our query has id = "pid")
+          const values = Object.values(rawVp) as string[];
+          vpToken = values[0];
+          this.logger.debug(`DCQL vp_token keys: ${Object.keys(rawVp).join(', ')}`);
+        } else {
+          throw new BadRequestException(`Unexpected vp_token type: ${typeof rawVp}`);
+        }
       } catch (e) {
         if (e instanceof UnauthorizedException) throw e;
         this.logger.error('JWE decryption failed', String(e));
