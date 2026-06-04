@@ -96,7 +96,7 @@ export class IssuerService implements OnModuleInit {
     // user_pin_required is a Draft ≤12 field — omitting it avoids wallets
     // misinterpreting it as tx_code present.
     const offer = {
-      credential_issuer: `${this.baseUrl}/issuer`,
+      credential_issuer: this.baseUrl,   // must match issuer in metadata (root, no /issuer)
       credential_configuration_ids: [EAA_VCT],
       grants: {
         'urn:ietf:params:oauth:grant-type:pre-authorized_code': {
@@ -115,7 +115,7 @@ export class IssuerService implements OnModuleInit {
     if (!offer) throw new NotFoundException('Credential offer not found or expired');
 
     return {
-      credential_issuer: `${this.baseUrl}/issuer`,
+      credential_issuer: this.baseUrl,
       credential_configuration_ids: [EAA_VCT],
       grants: {
         'urn:ietf:params:oauth:grant-type:pre-authorized_code': {
@@ -276,23 +276,26 @@ export class IssuerService implements OnModuleInit {
 
   // ── Issuer metadata (/.well-known/openid-credential-issuer) ───────────────
   getIssuerMetadata() {
-    const base = `${this.baseUrl}/issuer`;
+    const base   = `${this.baseUrl}/issuer`;
+    // RFC 8414 §5: the `issuer` field MUST match the URL from which the well-known
+    // document was retrieved. The iOS EUDI wallet fetches
+    // GET /.well-known/openid-credential-issuer (no path suffix), so it expects
+    // issuer == this.baseUrl (NOT this.baseUrl/issuer).
+    // credential_issuer and issuer must therefore be set to the root URL.
+    const origin = this.baseUrl;
+
     return {
-      // OID4VCI §11 — Credential Issuer Metadata
-      credential_issuer: base,
+      // OID4VCI §11 — credential issuer at root, endpoints under /issuer/
+      credential_issuer: origin,
       credential_endpoint: `${base}/credential`,
       token_endpoint: `${base}/token`,
 
-      // RFC 8414 / OIDC Discovery — required for wallet to discover pre-auth grant type.
-      // Without grant_types_supported including pre-authorized_code, the wallet falls
-      // back to authorization code flow and shows a "login at service" dialog.
+      // RFC 8414 — must match origin for /.well-known/openid-credential-issuer discovery
+      issuer: origin,
       grant_types_supported: [
         'urn:ietf:params:oauth:grant-type:pre-authorized_code',
       ],
-      // No client authentication required for pre-auth flow
       token_endpoint_auth_methods_supported: ['none'],
-      // OIDC / RFC 8414 required fields
-      issuer: base,
       response_types_supported: ['token'],
 
       credential_configurations_supported: {
