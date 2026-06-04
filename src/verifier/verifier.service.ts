@@ -134,6 +134,12 @@ export class VerifierService implements OnModuleInit {
             kid: `eph-${nonce.slice(0, 8)}`,
           }],
         },
+        vp_formats_supported: {
+          'dc+sd-jwt': {
+            'sd-jwt_alg_values': ['ES256'],
+            'kb-jwt_alg_values': ['ES256'],
+          },
+        },
       },
       dcql_query: {
         credentials: [{
