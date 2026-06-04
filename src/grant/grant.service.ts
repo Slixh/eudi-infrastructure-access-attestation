@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateGrantDto } from './dto/create-grant.dto';
@@ -9,6 +10,7 @@ export class GrantService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly config: ConfigService,
   ) {}
 
   async create(dto: CreateGrantDto) {
@@ -43,10 +45,10 @@ export class GrantService {
     const token = this.jwt.sign({ sub: grant.id, type: 'invite' });
     await this.prisma.grant.update({ where: { id }, data: { inviteToken: token } });
 
-    const baseUrl = process.env.PUBLIC_BASE_URL ?? 'http://localhost:3000';
+    const baseUrl  = this.config.get('PUBLIC_BASE_URL', 'http://localhost:3000');
     // client_id must be present in the deep-link itself (OID4VP §5.2 / HAIP §6).
     // The wallet checks client_id BEFORE fetching the request_uri.
-    const clientId = process.env.RP_CLIENT_ID ?? '';
+    const clientId = this.config.get('RP_CLIENT_ID', '');
     const requestUri = `${baseUrl}/verifier/request?inviteToken=${token}`;
     // OID4VP Authorization Request deep-link — wallet opens this URL
     // The VerifierModule serves the actual JAR (request object) behind /verifier/request

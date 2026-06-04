@@ -39,11 +39,4 @@ export class IssuerController {
   jwks() {
     return this.issuerService.getJwks();
   }
-
-  // OID4VCI issuer metadata discovery
-  @Get('.well-known/openid-credential-issuer')
-  @ApiOperation({ summary: 'OID4VCI: Issuer metadata discovery' })
-  wellKnown() {
-    return this.issuerService.getIssuerMetadata();
-  }
 }

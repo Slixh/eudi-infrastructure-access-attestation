@@ -8,6 +8,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { GrantService } from '../grant/grant.service';
 import { IssuerService } from '../issuer/issuer.service';
+import { signCompact } from '../common/jwt.util';
 import {
   generateKeyPair,
   exportJWK,
@@ -395,30 +396,6 @@ export class VerifierService implements OnModuleInit {
 
   // ── Utility: sign a payload as JWT with x5c header ────────────────────────
   private signWithX5c(payload: Record<string, unknown>, typ: string): string {
-    const header = { alg: 'ES256', typ, x5c: [this.x5c] };
-    const h = Buffer.from(JSON.stringify(header)).toString('base64url');
-    const p = Buffer.from(JSON.stringify(payload)).toString('base64url');
-    const sigInput = `${h}.${p}`;
-    const privKey  = crypto.createPrivateKey(this.signingKeyPem);
-    const derSig   = crypto.sign('SHA256', Buffer.from(sigInput), privKey);
-    return `${sigInput}.${this.derToJws(derSig)}`;
-  }
-
-  private derToJws(der: Buffer): string {
-    let i = 0;
-    if (der[i++] !== 0x30) throw new Error('Not a DER SEQUENCE');
-    if (der[i] & 0x80) i += (der[i] & 0x7f) + 1; else i++;
-    if (der[i++] !== 0x02) throw new Error('Expected R INTEGER');
-    const rLen = der[i++];
-    let r = der.subarray(i, i + rLen); i += rLen;
-    if (der[i++] !== 0x02) throw new Error('Expected S INTEGER');
-    const sLen = der[i++];
-    let s = der.subarray(i, i + sLen);
-    while (r.length > 32 && r[0] === 0x00) r = r.subarray(1);
-    while (s.length > 32 && s[0] === 0x00) s = s.subarray(1);
-    const out = Buffer.alloc(64);
-    r.copy(out, 32 - r.length);
-    s.copy(out, 64 - s.length);
-    return out.toString('base64url');
+    return signCompact({ alg: 'ES256', typ, x5c: [this.x5c] }, payload, this.signingKeyPem);
   }
 }

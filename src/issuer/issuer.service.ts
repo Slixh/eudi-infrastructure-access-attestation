@@ -9,6 +9,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { GrantService } from '../grant/grant.service';
+import { signCompact } from '../common/jwt.util';
 import { importJWK, jwtVerify } from 'jose';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
@@ -256,9 +257,6 @@ export class IssuerService implements OnModuleInit {
     walletJwk: object,
   ): string {
     const now = Math.floor(Date.now() / 1000);
-    const privKey = crypto.createPrivateKey(this.signingKeyPem);
-    const pubJwk  = crypto.createPublicKey(privKey).export({ format: 'jwk' });
-
     // Selectively disclosable claims
     const sdEntries: Array<[string, unknown]> = [
       ['granted_resource', grant.resourceId],
@@ -286,12 +284,11 @@ export class IssuerService implements OnModuleInit {
 
     // EudiWalletKit requires either x5c or kid in the SD-JWT header.
     // kid references our public key in /.well-known/jwt-vc-issuer → jwks.keys[0]
-    const header = { alg: 'ES256', typ: 'dc+sd-jwt', kid: 'issuer-key-1' };
-    const h = Buffer.from(JSON.stringify(header)).toString('base64url');
-    const p = Buffer.from(JSON.stringify(payload)).toString('base64url');
-    const sigInput = `${h}.${p}`;
-    const derSig   = crypto.sign('SHA256', Buffer.from(sigInput), privKey);
-    const issuerJwt = `${sigInput}.${this.derToJws(derSig)}`;
+    const issuerJwt = signCompact(
+      { alg: 'ES256', typ: 'dc+sd-jwt', kid: 'issuer-key-1' },
+      payload,
+      this.signingKeyPem,
+    );
 
     // SD-JWT: issuer-jwt~disc1~disc2~  (trailing ~ = no KB-JWT at issuance time)
     return [issuerJwt, ...disclosures.map(d => d.encoded), ''].join('~');
@@ -364,22 +361,4 @@ export class IssuerService implements OnModuleInit {
     };
   }
 
-  // DER → JWS signature (R||S, 64 bytes) — copied from VerifierService
-  private derToJws(der: Buffer): string {
-    let i = 0;
-    if (der[i++] !== 0x30) throw new Error('Not a DER SEQUENCE');
-    if (der[i] & 0x80) i += (der[i] & 0x7f) + 1; else i++;
-    if (der[i++] !== 0x02) throw new Error('Expected R INTEGER');
-    const rLen = der[i++];
-    let r = der.subarray(i, i + rLen); i += rLen;
-    if (der[i++] !== 0x02) throw new Error('Expected S INTEGER');
-    const sLen = der[i++];
-    let s = der.subarray(i, i + sLen);
-    while (r.length > 32 && r[0] === 0x00) r = r.subarray(1);
-    while (s.length > 32 && s[0] === 0x00) s = s.subarray(1);
-    const out = Buffer.alloc(64);
-    r.copy(out, 32 - r.length);
-    s.copy(out, 64 - s.length);
-    return out.toString('base64url');
-  }
 }
