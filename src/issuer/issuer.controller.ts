@@ -33,6 +33,13 @@ export class IssuerController {
     return this.issuerService.handleCredentialRequest(authHeader, body);
   }
 
+  // JWKS endpoint — serves issuer public key for credential verification
+  @Get('jwks')
+  @ApiOperation({ summary: 'OID4VCI: JWKS — issuer public key for SD-JWT VC verification' })
+  jwks() {
+    return this.issuerService.getJwks();
+  }
+
   // OID4VCI issuer metadata discovery
   @Get('.well-known/openid-credential-issuer')
   @ApiOperation({ summary: 'OID4VCI: Issuer metadata discovery' })

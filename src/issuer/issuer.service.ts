@@ -51,6 +51,7 @@ export class IssuerService implements OnModuleInit {
 
   private signingKeyPem: string;
   private baseUrl: string;
+  private publicJwk: object;   // issuer public key for JWKS endpoint
 
   constructor(
     private readonly config: ConfigService,
@@ -70,6 +71,11 @@ export class IssuerService implements OnModuleInit {
       ),
     );
     this.signingKeyPem = fs.readFileSync(keyPath, 'utf8');
+
+    // Derive and cache the public JWK for JWKS endpoint
+    const privKey = crypto.createPrivateKey(this.signingKeyPem);
+    const pubKey  = crypto.createPublicKey(privKey);
+    this.publicJwk = { ...pubKey.export({ format: 'jwk' }), use: 'sig', alg: 'ES256', kid: 'issuer-key-1' };
 
     setInterval(() => {
       const cutoff = Date.now() - 15 * 60_000;
@@ -290,13 +296,20 @@ export class IssuerService implements OnModuleInit {
       credential_endpoint: `${base}/credential`,
       token_endpoint: `${base}/token`,
 
-      // RFC 8414 — must match origin for /.well-known/openid-credential-issuer discovery
+      // RFC 8414 / OIDC Discovery required fields
       issuer: origin,
+      // authorization_endpoint is required by OIDC Discovery validation even for
+      // pre-auth flow where it is never actually called.
+      authorization_endpoint: `${base}/authorize`,
+      // jwks_uri: wallet fetches this to verify issued credentials (required by OIDC Discovery)
+      jwks_uri: `${base}/jwks`,
       grant_types_supported: [
         'urn:ietf:params:oauth:grant-type:pre-authorized_code',
       ],
       token_endpoint_auth_methods_supported: ['none'],
       response_types_supported: ['token'],
+      subject_types_supported: ['public'],
+      id_token_signing_alg_values_supported: ['ES256'],
 
       credential_configurations_supported: {
         [EAA_VCT]: {
@@ -316,6 +329,11 @@ export class IssuerService implements OnModuleInit {
         },
       },
     };
+  }
+
+  // JWKS endpoint — wallet uses this to verify issued SD-JWT VCs
+  getJwks() {
+    return { keys: [this.publicJwk] };
   }
 
   // DER → JWS signature (R||S, 64 bytes) — copied from VerifierService
