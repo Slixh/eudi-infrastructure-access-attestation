@@ -123,7 +123,7 @@ const columns: TableColumn<Grant>[] = [
               Teile diesen Link um den Einladungs-QR-Code anzuzeigen:
             </p>
             <UInput
-              :model-value="`${$config.public.apiBase.replace('/api', '')}/panel/grants/${createdGrant.id}/invite`"
+              :model-value="`${useRequestURL().origin}/panel/grants/${createdGrant.id}/invite`"
               readonly
               @click="($event.target as HTMLInputElement).select()"
             >

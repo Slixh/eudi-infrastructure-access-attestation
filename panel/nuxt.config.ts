@@ -8,6 +8,10 @@ export default defineNuxtConfig({
   // Config files (nuxt.config.ts, package.json, …) stay at the panel root.
   srcDir: 'app',
 
+  // Admin panel — no need for SSR. Avoids Docker-internal fetch issues where
+  // the panel container can't reach the public API domain during server render.
+  ssr: false,
+
   // Served at /panel/ — Nuxt router and asset paths are adjusted accordingly.
   // Traefik forwards PathPrefix(`/panel`) without stripping, so Nuxt sees the
   // full path and routes correctly.
