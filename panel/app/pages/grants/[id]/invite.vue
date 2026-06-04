@@ -31,8 +31,19 @@ const qrUrl = computed(() =>
   <div class="min-h-dvh bg-gray-50 dark:bg-gray-950 flex items-center justify-center px-4 py-12">
     <UCard class="w-full max-w-md text-center">
       <template v-if="error">
-        <UIcon name="heroicons:exclamation-triangle" class="w-10 h-10 text-red-500 mx-auto mb-3" />
-        <p class="text-gray-600 dark:text-gray-400">Grant nicht gefunden.</p>
+        <UIcon
+          :name="error.statusCode === 404 ? 'heroicons:lock-closed' : 'heroicons:exclamation-triangle'"
+          class="w-10 h-10 mx-auto mb-3"
+          :class="error.statusCode === 404 ? 'text-gray-400' : 'text-red-500'"
+        />
+        <p class="font-semibold text-gray-800 dark:text-gray-200 mb-1">
+          {{ error.statusCode === 404 ? 'Einladung nicht verfügbar' : 'Fehler' }}
+        </p>
+        <p class="text-sm text-gray-500">
+          {{ error.statusCode === 404
+            ? 'Dieser Zugang wurde bereits ausgestellt oder existiert nicht.'
+            : error.message }}
+        </p>
       </template>
 
       <template v-else-if="data">

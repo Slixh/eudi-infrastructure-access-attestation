@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { GrantService } from './grant.service';
 import { CreateGrantDto } from './dto/create-grant.dto';
@@ -32,14 +32,15 @@ export class GrantController {
   }
 
   // GET: returns grant details + a fresh invite token + deep-link (JSON)
-  // Used by the panel invite page to render the QR code.
+  // Returns 404 when the grant is already ACTIVE (already issued — invite no longer valid).
   @Get(':id/invite')
   @ApiOperation({ summary: 'Get grant details + OID4VP invite deep-link (JSON)' })
   async getInvite(@Param('id') id: string) {
-    const [grant, { token, deepLink }] = await Promise.all([
-      this.grantService.findOne(id),
-      this.grantService.generateInviteToken(id),
-    ]);
+    const grant = await this.grantService.findOne(id);
+    if (grant.status === 'ACTIVE') {
+      throw new NotFoundException('This grant has already been issued');
+    }
+    const { token, deepLink } = await this.grantService.generateInviteToken(id);
     return { grant, token, deepLink };
   }
 

@@ -281,34 +281,51 @@ export class VerifierService implements OnModuleInit {
     const grant = await this.grantService.findByInviteToken(inviteToken);
     if (!grant) throw new UnauthorizedException(`Grant not found for token: ${inviteToken}`);
 
+    // Helper — redirect to the panel complete page carrying an error code.
+    // The wallet gets a valid redirect_uri so it opens the browser; the page
+    // shows an appropriate message to the user instead of the credential offer.
+    const errorRedirect = (code: string, description: string) => {
+      this.logger.warn(`VP accepted but redirecting with error — ${code}: ${description}`);
+      const redirectUri =
+        `${this.baseUrl}/panel/verifier/complete` +
+        `?state=${encodeURIComponent(inviteToken)}` +
+        `&error=${encodeURIComponent(code)}` +
+        `&error_description=${encodeURIComponent(description)}`;
+      return { redirect_uri: redirectUri };
+    };
+
     // ── One-time issuance: ACTIVE grants cannot be re-issued ─────────────────
     if (grant.status === 'ACTIVE') {
-      throw new UnauthorizedException(
-        `Grant ${grant.id} is already active — credential has already been issued`,
+      return errorRedirect(
+        'grant_already_active',
+        'Dieser Zugang wurde bereits ausgestellt und kann nicht erneut beansprucht werden.',
       );
     }
 
     // ── Optional PID binding check ────────────────────────────────────────────
-    // If the admin bound the grant to a specific person, the presented PID must match.
     const mismatches: string[] = [];
     if (grant.pidFamilyName) {
       const expected = grant.pidFamilyName.trim().toLowerCase();
       const got      = String(pidClaims.family_name ?? '').trim().toLowerCase();
-      if (got !== expected) mismatches.push(`family_name (expected: "${grant.pidFamilyName}", got: "${pidClaims.family_name}")`);
+      if (got !== expected) mismatches.push('Nachname');
     }
     if (grant.pidFirstName) {
       const expected = grant.pidFirstName.trim().toLowerCase();
       const got      = String(pidClaims.given_name ?? '').trim().toLowerCase();
-      if (got !== expected) mismatches.push(`given_name (expected: "${grant.pidFirstName}", got: "${pidClaims.given_name}")`);
+      if (got !== expected) mismatches.push('Vorname');
     }
     if (grant.pidBirthdate) {
-      if (pidClaims.birthdate !== grant.pidBirthdate) {
-        mismatches.push(`birthdate (expected: "${grant.pidBirthdate}", got: "${pidClaims.birthdate}")`);
-      }
+      if (pidClaims.birthdate !== grant.pidBirthdate) mismatches.push('Geburtsdatum');
     }
     if (mismatches.length > 0) {
-      this.logger.warn(`PID binding mismatch for grant ${grant.id}: ${mismatches.join(', ')}`);
-      throw new UnauthorizedException(`PID does not match the grant binding: ${mismatches.join('; ')}`);
+      this.logger.warn(
+        `PID binding mismatch for grant ${grant.id}: ${mismatches.join(', ')} — ` +
+        `presented: ${pidClaims.given_name} ${pidClaims.family_name} ${pidClaims.birthdate}`,
+      );
+      return errorRedirect(
+        'pid_mismatch',
+        `Die vorgelegte Identität stimmt nicht mit den hinterlegten Daten überein (${mismatches.join(', ')}).`,
+      );
     }
 
     const pidSubject =
@@ -321,7 +338,6 @@ export class VerifierService implements OnModuleInit {
     this.completions.set(inviteToken, credentialOfferUri);
 
     // Per OID4VP spec §8.2: return only redirect_uri in the HTTP 200 response.
-    // The wallet opens this URI in the browser. The page shows the credential offer.
     const redirectUri = `${this.baseUrl}/panel/verifier/complete?state=${encodeURIComponent(inviteToken)}`;
     return { redirect_uri: redirectUri };
   }

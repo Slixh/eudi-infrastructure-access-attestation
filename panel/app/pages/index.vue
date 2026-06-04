@@ -97,14 +97,16 @@ const columns: TableColumn<Grant>[] = [
   {
     id: 'actions',
     header: '',
-    cell: ({ row }) =>
-      h(UButton, {
+    cell: ({ row }) => {
+      if (row.original.status === 'ACTIVE') return null
+      return h(UButton, {
         to: `/grants/${row.original.id}/invite`,
         variant: 'ghost',
         color: 'neutral',
         icon: 'heroicons:qr-code',
         size: 'sm',
-      }),
+      })
+    },
   },
 ]
 </script>
