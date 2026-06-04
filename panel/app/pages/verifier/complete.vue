@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ layout: false })
+
 const route = useRoute()
 const config = useRuntimeConfig()
 
@@ -17,7 +19,7 @@ const qrUrl = computed(() =>
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center p-6">
+  <div class="min-h-dvh bg-gray-50 dark:bg-gray-950 flex items-center justify-center px-4 py-12">
     <UCard class="max-w-md w-full text-center">
       <template v-if="error">
         <UIcon name="heroicons:exclamation-triangle" class="w-10 h-10 text-amber-500 mx-auto mb-3" />

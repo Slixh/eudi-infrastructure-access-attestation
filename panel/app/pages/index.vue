@@ -24,8 +24,10 @@ const form = ref({ label: '', resourceId: '' })
 const submitting = ref(false)
 const createdGrant = ref<Grant | null>(null)
 
+// Vue Router with app.baseURL='/panel/' resolves paths relative to the base.
+// Do NOT include /panel/ in :to props — the router adds it automatically.
 const inviteUrl = computed(() =>
-  createdGrant.value ? `/panel/grants/${createdGrant.value.id}/invite` : null,
+  createdGrant.value ? `/grants/${createdGrant.value.id}/invite` : null,
 )
 
 const inviteAbsoluteUrl = computed(() => {
@@ -83,7 +85,7 @@ const columns: TableColumn<Grant>[] = [
     header: '',
     cell: ({ row }) =>
       h(UButton, {
-        to: `/panel/grants/${row.original.id}/invite`,
+        to: `/grants/${row.original.id}/invite`,
         variant: 'ghost',
         color: 'neutral',
         icon: 'heroicons:qr-code',
