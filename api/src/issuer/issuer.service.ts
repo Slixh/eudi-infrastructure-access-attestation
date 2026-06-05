@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
   BadRequestException,
   OnModuleInit,
+  HttpException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -236,7 +237,13 @@ export class IssuerService implements OnModuleInit {
       if (!preAuthCode) throw new BadRequestException('Missing pre-authorized_code');
 
       const offerState = this.pendingOffers.get(preAuthCode);
-      if (!offerState) throw new UnauthorizedException('Unknown or expired pre-authorized_code');
+      if (!offerState) {
+        // OAuth 2.0 error shape expected by wallets
+        throw new HttpException(
+          { error: 'invalid_grant', error_description: 'Unknown or expired pre-authorized_code' },
+          400,
+        );
+      }
 
       // One-time use — delete immediately
       this.pendingOffers.delete(preAuthCode);
@@ -329,7 +336,11 @@ export class IssuerService implements OnModuleInit {
       };
     }
 
-    throw new BadRequestException(`Unsupported grant_type: ${grantType}`);
+    // RFC 6749: unsupported_grant_type
+    throw new HttpException(
+      { error: 'unsupported_grant_type', error_description: `Unsupported grant_type: ${grantType}` },
+      400,
+    );
   }
 
   // ── 4. Credential endpoint ─────────────────────────────────────────────────
@@ -339,11 +350,20 @@ export class IssuerService implements OnModuleInit {
   ): Promise<Record<string, unknown>> {
     // Validate bearer token
     if (!authHeader?.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing Bearer token');
+      // RFC 6750 invalid_token
+      throw new HttpException(
+        { error: 'invalid_token', error_description: 'Missing Bearer token' },
+        401,
+      );
     }
     const accessToken = authHeader.slice(7);
     const tokenState = this.pendingTokens.get(accessToken);
-    if (!tokenState) throw new UnauthorizedException('Unknown or expired access token');
+    if (!tokenState) {
+      throw new HttpException(
+        { error: 'invalid_token', error_description: 'Unknown or expired access token' },
+        401,
+      );
+    }
 
     // Validate proof of possession.
     // Draft 13: { "proof":  { "proof_type": "jwt", "jwt": "<string>" } }
@@ -358,19 +378,30 @@ export class IssuerService implements OnModuleInit {
     } else if (proofs?.jwt && Array.isArray(proofs.jwt) && proofs.jwt.length > 0) {
       proofJwt = proofs.jwt[0] as string;
     }
-    if (!proofJwt) throw new BadRequestException('Missing proof.jwt (key proof required)');
+    if (!proofJwt) {
+      throw new HttpException(
+        { error: 'invalid_request', error_description: 'Missing proof.jwt (key proof required)' },
+        400,
+      );
+    }
 
     // Decode proof header + payload (no sig verify yet — need key first)
     const proofParts = proofJwt.split('.');
-    if (proofParts.length !== 3) throw new BadRequestException('Malformed proof JWT');
+    if (proofParts.length !== 3) {
+      throw new HttpException(
+        { error: 'invalid_request', error_description: 'Malformed proof JWT' },
+        400,
+      );
+    }
     const proofHeader  = JSON.parse(Buffer.from(proofParts[0], 'base64url').toString());
     const proofPayload = JSON.parse(Buffer.from(proofParts[1], 'base64url').toString());
 
     // c_nonce check — OID4VCI requires wallet to include nonce from token response.
     // Some wallet implementations omit it; log a warning but continue.
     if (proofPayload.nonce && proofPayload.nonce !== tokenState.cNonce) {
-      throw new UnauthorizedException(
-        `Proof nonce mismatch: expected ${tokenState.cNonce}, got ${proofPayload.nonce}`,
+      throw new HttpException(
+        { error: 'invalid_request', error_description: `Proof nonce mismatch: expected ${tokenState.cNonce}, got ${proofPayload.nonce}` },
+        400,
       );
     }
     if (!proofPayload.nonce) {
@@ -378,7 +409,12 @@ export class IssuerService implements OnModuleInit {
     }
 
     // Wallet public key from proof header
-    if (!proofHeader.jwk) throw new BadRequestException('Proof JWT must carry jwk header');
+    if (!proofHeader.jwk) {
+      throw new HttpException(
+        { error: 'invalid_request', error_description: 'Proof JWT must carry jwk header' },
+        400,
+      );
+    }
     const walletPubKey = await importJWK(proofHeader.jwk, proofHeader.alg ?? 'ES256') as CryptoKey;
 
     // Verify proof signature
@@ -386,7 +422,10 @@ export class IssuerService implements OnModuleInit {
       await jwtVerify(proofJwt, walletPubKey, { algorithms: [proofHeader.alg ?? 'ES256'] });
       this.logger.debug('Proof JWT signature verified ✓');
     } catch (e) {
-      throw new UnauthorizedException(`Proof JWT signature invalid: ${String(e)}`);
+      throw new HttpException(
+        { error: 'invalid_request', error_description: `Proof JWT signature invalid: ${String(e)}` },
+        401,
+      );
     }
 
     const grant = await this.grantService.findOne(tokenState.grantId);
