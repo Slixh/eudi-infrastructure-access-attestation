@@ -52,5 +52,5 @@ const columns: TableColumn<Location>[] = [
 </script>
 
 <template>
-  <UTable :data="locations" :columns="columns" />
+  <UTable :data="locations" :columns="columns" class="iaa-table" />
 </template>

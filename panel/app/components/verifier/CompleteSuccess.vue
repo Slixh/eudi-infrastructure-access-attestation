@@ -4,16 +4,24 @@ defineProps<{ offerUri: string }>()
 
 <template>
   <div class="text-center">
+    <div class="flex items-center justify-center gap-2 mb-5">
+      <AppLogo class="w-7 h-7" />
+      <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">Infrastructure Access</span>
+    </div>
+
     <UIcon name="heroicons:check-circle" class="w-12 h-12 text-green-500 mx-auto mb-3" />
     <h1 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Identität verifiziert</h1>
     <p class="text-sm text-gray-500 mb-6">
-      Öffne den Link in deiner EUDI Wallet um dein
+      Öffne den Link in deiner EUDI Wallet, um dein
       <strong>Zugangs-Credential</strong> abzurufen.
     </p>
 
-    <AppQrCode :value="offerUri" :size="240" class="mx-auto mb-6" />
+    <div class="iaa-qr-frame inline-block mb-2">
+      <AppQrCode :value="offerUri" :size="240" />
+    </div>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mb-5">Mit der EUDI Wallet scannen</p>
 
-    <UButton :to="offerUri" size="lg" block>In EUDI Wallet öffnen</UButton>
+    <UButton :to="offerUri" size="lg" block class="iaa-primary-button">In EUDI Wallet öffnen</UButton>
 
     <p class="text-sm text-gray-400 mt-4 mb-6">
       Gleiches Gerät? Button tippen.<br>

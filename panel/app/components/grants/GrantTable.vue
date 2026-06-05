@@ -6,10 +6,10 @@ import type { Grant } from '~/types/grant'
 defineProps<{ grants: Grant[] }>()
 const emit = defineEmits<{ revoked: [id: string] }>()
 
-const UBadge   = resolveComponent('UBadge')
 const UButton  = resolveComponent('UButton')
 const UIcon    = resolveComponent('UIcon')
 const UTooltip = resolveComponent('UTooltip')
+const AppStatusBadge = resolveComponent('AppStatusBadge')
 
 const { revokeGrant } = useGrants()
 const revoking = ref<string | null>(null)
@@ -25,18 +25,6 @@ async function handleRevoke(id: string) {
   }
 }
 
-const STATUS_COLOR: Record<string, string> = {
-  ACTIVE:  'success',
-  REVOKED: 'error',
-  PENDING: 'neutral',
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  ACTIVE:  'Aktiv',
-  REVOKED: 'Widerrufen',
-  PENDING: 'Ausstehend',
-}
-
 const columns: TableColumn<Grant>[] = [
   {
     accessorKey: 'label',
@@ -44,13 +32,13 @@ const columns: TableColumn<Grant>[] = [
     cell: ({ row }) => {
       const { label, pidFirstName, pidFamilyName, pidBirthdate } = row.original
       const hasPid = pidFirstName || pidFamilyName || pidBirthdate
-      if (!hasPid) return h('span', { class: 'break-words whitespace-normal' }, label)
+      if (!hasPid) return h('span', { class: 'font-medium text-gray-900 dark:text-white break-words whitespace-normal' }, label)
 
       const nameParts = [pidFirstName, pidFamilyName].filter(Boolean).join(' ')
       const pidLine   = [nameParts, pidBirthdate].filter(Boolean).join(' · ')
 
       return h('div', { class: 'flex flex-col gap-0.5' }, [
-        h('span', { class: 'break-words whitespace-normal' }, label),
+        h('span', { class: 'font-medium text-gray-900 dark:text-white break-words whitespace-normal' }, label),
         h('span', { class: 'flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500' }, [
           h(UIcon, { name: 'heroicons:user', class: 'w-3 h-3 shrink-0' }),
           h('span', pidLine),
@@ -73,10 +61,7 @@ const columns: TableColumn<Grant>[] = [
     header: 'Status',
     cell: ({ row }) => {
       const status = row.getValue<string>('status')
-      return h(UBadge, {
-        color: STATUS_COLOR[status] ?? 'neutral',
-        variant: 'subtle',
-      }, () => STATUS_LABEL[status] ?? status)
+      return h(AppStatusBadge, { status })
     },
   },
   {
@@ -127,5 +112,5 @@ const columns: TableColumn<Grant>[] = [
 </script>
 
 <template>
-  <UTable :data="grants" :columns="columns" />
+  <UTable :data="grants" :columns="columns" class="iaa-table" />
 </template>

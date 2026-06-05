@@ -51,7 +51,7 @@ function onAfterLeave() {
           <UInput v-model="form.name" placeholder="Serverraum EG" class="w-full" autofocus />
         </UFormField>
 
-        <UFormField label="Technischer Identifier" required hint="Eindeutige ID für den EAA-Credential-Claim">
+        <UFormField label="Technische ID" required hint="Eindeutige ID für den EAA-Credential-Claim">
           <UInput
             v-model="form.identifier"
             placeholder="door:building-a:floor-0:server"

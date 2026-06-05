@@ -29,14 +29,56 @@ const svg = computed(() => {
 
 // uqr renders a fixed viewBox; we scale via width/height attrs on the wrapper
 const displaySize = computed(() => props.size ?? 240)
+const fullscreenOpen = ref(false)
+
+function closeFullscreen() {
+  fullscreenOpen.value = false
+}
+
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') closeFullscreen()
+}
+
+onMounted(() => window.addEventListener('keydown', handleKeydown))
+onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
 </script>
 
 <template>
-  <div
+  <button
+    type="button"
     :style="{ width: `${displaySize}px`, height: `${displaySize}px` }"
-    class="rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700 inline-block"
+    class="overflow-hidden inline-block cursor-zoom-in align-top focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+    aria-label="QR-Code im Vollbild anzeigen"
+    @click="fullscreenOpen = true"
     v-html="svg"
   />
+
+  <Teleport to="body">
+    <div
+      v-if="fullscreenOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/90 p-5"
+      role="dialog"
+      aria-modal="true"
+      aria-label="QR-Code Vollbild"
+      @click.self="closeFullscreen"
+    >
+      <button
+        type="button"
+        class="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/20 transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        aria-label="Vollbild schließen"
+        @click="closeFullscreen"
+      >
+        <UIcon name="heroicons:x-mark" class="h-5 w-5" />
+      </button>
+
+      <div class="bg-white p-4 dark:bg-gray-900">
+        <div
+          class="h-[min(82vw,82vh)] w-[min(82vw,82vh)] overflow-hidden"
+          v-html="svg"
+        />
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>

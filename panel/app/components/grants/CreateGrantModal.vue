@@ -279,7 +279,7 @@ function onAfterLeave() {
         <!-- PID binding -->
         <USeparator label="PID-Bindung (optional)" />
         <p class="text-xs text-gray-400 -mt-1">
-          Wenn angegeben, wird der Grant nur an diese Person ausgestellt.
+          Wenn angegeben, wird der Zugang nur an diese Person ausgestellt.
         </p>
 
         <div class="grid grid-cols-2 gap-3">

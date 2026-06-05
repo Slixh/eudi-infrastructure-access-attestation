@@ -13,7 +13,7 @@ const ERROR_CONFIG: Record<string, { icon: string; iconClass: string; title: str
   session_expired: {
     icon:      'heroicons:exclamation-triangle',
     iconClass: 'text-amber-500',
-    title:     'Session abgelaufen',
+    title:     'Sitzung abgelaufen',
   },
 }
 

@@ -16,7 +16,7 @@ const columns: TableColumn<Resource>[] = [
   },
   {
     accessorKey: 'identifier',
-    header: 'Identifier',
+    header: 'Technische ID',
     cell: ({ row }) =>
       h('span', { class: 'font-mono text-xs text-gray-500 dark:text-gray-400' }, row.original.identifier),
   },
@@ -29,7 +29,7 @@ const columns: TableColumn<Resource>[] = [
   },
   {
     id: 'grants',
-    header: 'Grants',
+    header: 'Zugänge',
     cell: ({ row }) => {
       const count = row.original._count?.grants ?? 0
       return h(UBadge, { color: count > 0 ? 'success' : 'neutral', variant: 'subtle' }, () => String(count))
@@ -44,5 +44,5 @@ const columns: TableColumn<Resource>[] = [
 </script>
 
 <template>
-  <UTable :data="resources" :columns="columns" />
+  <UTable :data="resources" :columns="columns" class="iaa-table" />
 </template>

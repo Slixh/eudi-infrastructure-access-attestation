@@ -18,4 +18,71 @@
   --color-blue-800: #002859;
   --color-blue-900: #00142e;
   --color-blue-950: #000a17;
+
+  --color-cyan-50:  #e6faff;
+  --color-cyan-100: #ccf4ff;
+  --color-cyan-200: #99e9ff;
+  --color-cyan-300: #66ddff;
+  --color-cyan-400: #33d2ff;
+  --color-cyan-500: #00c7ff;
+  --color-cyan-600: #009fcc;
+  --color-cyan-700: #007799;
+  --color-cyan-800: #005066;
+  --color-cyan-900: #002833;
+  --color-cyan-950: #00141a;
+
+  --brand-primary: #0162cb;
+  --brand-accent: #00c7ff;
+  --brand-gradient: linear-gradient(120deg, #0162cb 0%, #00c7ff 100%);
+  --radius-control: 10px;
+  --radius-card: 14px;
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, .04), 0 12px 30px -22px rgba(1, 98, 203, .45);
+  --shadow-primary: 0 1px 0 rgba(255, 255, 255, .18) inset, 0 8px 18px -10px rgba(1, 98, 203, .75);
+}
+
+@layer components {
+  .iaa-gradient-text {
+    background: var(--brand-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .iaa-card {
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
+
+  .iaa-primary-button {
+    box-shadow: var(--shadow-primary);
+  }
+
+  .iaa-table tbody tr {
+    transition: background-color .16s ease;
+  }
+
+  .iaa-table,
+  .iaa-table table {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .iaa-table tbody tr:hover {
+    background-color: var(--color-blue-50);
+  }
+
+  .dark .iaa-table tbody tr:hover {
+    background-color: rgba(0, 199, 255, .08);
+  }
+
+  .iaa-qr-frame {
+    padding: 10px;
+    background: white;
+    box-shadow: 0 0 0 1px rgba(230, 233, 238, 1);
+  }
+
+  .dark .iaa-qr-frame {
+    background: rgb(24, 24, 27);
+    box-shadow: 0 0 0 1px rgba(63, 63, 70, 1);
+  }
 }

@@ -43,7 +43,7 @@ export default defineNuxtConfig({
     public: {
       // API base URL — override with NUXT_PUBLIC_API_BASE in .env.local for dev
       // or via environment variable in production.
-      apiBase: process.env.NUXT_PUBLIC_API_BASE ?? 'http://localhost:3000',
+      apiBase: (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.NUXT_PUBLIC_API_BASE ?? 'http://localhost:3000',
     },
   },
 })

@@ -21,15 +21,13 @@ function onResourceCreated(resource: Resource) {
 <template>
   <div v-if="location">
     <!-- Back + actions -->
-    <div class="flex items-center justify-between mb-6">
-      <div class="flex items-center gap-3">
-        <UButton
-          to="/locations"
-          variant="ghost"
-          color="neutral"
-          icon="heroicons:arrow-left"
-          size="sm"
-        />
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-6">
+      <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-2">
+          <NuxtLink to="/locations" class="hover:text-blue-600 dark:hover:text-cyan-300 transition-colors">Standorte</NuxtLink>
+          <UIcon name="heroicons:chevron-right" class="w-4 h-4" />
+          <span class="text-gray-700 dark:text-gray-200">{{ location.name }}</span>
+        </div>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ location.name }}</h1>
       </div>
       <UButton
@@ -43,7 +41,7 @@ function onResourceCreated(resource: Resource) {
     </div>
 
     <!-- Location info -->
-    <UCard class="mb-8">
+    <UCard class="iaa-card mb-8">
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <div>
           <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Adresse</p>
@@ -71,23 +69,27 @@ function onResourceCreated(resource: Resource) {
         <UBadge
           :color="(location.resources?.length ?? 0) > 0 ? 'primary' : 'neutral'"
           variant="subtle"
-          class="ml-2"
+          class="ml-2 ring-1 ring-inset ring-blue-100 dark:ring-blue-900"
         >
           {{ location.resources?.length ?? 0 }}
         </UBadge>
       </h2>
-      <UButton icon="heroicons:plus" size="sm" @click="addResourceOpen = true">
+      <UButton icon="heroicons:plus" size="sm" class="iaa-primary-button" @click="addResourceOpen = true">
         Ressource hinzufügen
       </UButton>
     </div>
 
-    <UCard>
+    <UCard class="iaa-card">
       <template v-if="location.resources?.length">
         <LocationsLocationResourcesList :resources="location.resources" />
       </template>
-      <div v-else class="py-10 text-center text-gray-400 dark:text-gray-600">
-        <UIcon name="heroicons:server" class="w-10 h-10 mx-auto mb-2 opacity-40" />
-        <p class="text-sm">Noch keine Ressourcen an diesem Standort</p>
+      <div v-else class="py-12 text-center">
+        <UIcon name="heroicons:server" class="w-11 h-11 mx-auto mb-3 text-cyan-500" />
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white">Noch keine Ressourcen</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-5">Füge die erste Ressource für diesen Standort hinzu.</p>
+        <UButton icon="heroicons:plus" size="sm" class="iaa-primary-button" @click="addResourceOpen = true">
+          Erste Ressource hinzufügen
+        </UButton>
       </div>
     </UCard>
 
