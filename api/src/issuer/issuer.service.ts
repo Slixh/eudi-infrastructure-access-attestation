@@ -582,28 +582,28 @@ export class IssuerService implements OnModuleInit {
             issued_to:        { display: [{ name: 'Issued To',        locale: 'en-US' }] },
           },
         },
-        //// Also advertise an mDoc variant of the same credential
-        //[`${EAA_VCT}:mso_mdoc`]: {
-        //  format: 'mso_mdoc',
-        //  doctype: (this.mdocSchema && this.mdocSchema.doctype) || 'urn:eudi:eaa:infrastructure:access:1',
-        //  scope: 'InfrastructureAccessEAA',
-        //  cryptographic_binding_methods_supported: ['jwk'],
-        //  credential_signing_alg_values_supported: ['ES256'],
-        //  proof_types_supported: {
-        //    jwt: { proof_signing_alg_values_supported: ['ES256'] },
-        //  },
-        //  display: (this.mdocSchema && this.mdocSchema.display) || [
-        //    { name: 'Infrastructure Access Attestation (mDoc)', locale: 'en-US' },
-        //  ],
-        //  claims: (this.mdocSchema && this.mdocSchema.claims) || {
-        //    'urn:eudi:eaa:infrastructure:access:namespace:1': {
-        //      granted_resource: { mandatory: true, value_type: 'string', display: [{ name: 'Granted Resource', locale: 'en-US' }] },
-        //      grant_id:        { mandatory: true, value_type: 'string', display: [{ name: 'Grant ID',        locale: 'en-US' }] },
-        //      valid_from:      { mandatory: true, value_type: 'string', display: [{ name: 'Valid From',      locale: 'en-US' }] },
-        //      valid_until:     { mandatory: true, value_type: 'string', display: [{ name: 'Valid Until',     locale: 'en-US' }] },
-        //    },
-        //  },
-        //},
+        // Also advertise an mDoc variant of the same credential
+        [`${EAA_VCT}:mso_mdoc`]: {
+          format: 'mso_mdoc',
+          doctype: (this.mdocSchema && this.mdocSchema.doctype) || 'urn:eudi:eaa:infrastructure:access:1',
+          scope: 'InfrastructureAccessEAA',
+          cryptographic_binding_methods_supported: ['jwk'],
+          credential_signing_alg_values_supported: ['ES256'],
+          proof_types_supported: {
+            jwt: { proof_signing_alg_values_supported: ['ES256'] },
+          },
+          display: (this.mdocSchema && this.mdocSchema.display) || [
+            { name: 'Infrastructure Access Attestation (mDoc)', locale: 'en-US' },
+          ],
+          claims: (this.mdocSchema && this.mdocSchema.claims) || {
+            'urn:eudi:eaa:infrastructure:access:namespace:1': {
+              granted_resource: { mandatory: true, value_type: 'string', display: [{ name: 'Granted Resource', locale: 'en-US' }] },
+              grant_id:        { mandatory: true, value_type: 'string', display: [{ name: 'Grant ID',        locale: 'en-US' }] },
+              valid_from:      { mandatory: true, value_type: 'string', display: [{ name: 'Valid From',      locale: 'en-US' }] },
+              valid_until:     { mandatory: true, value_type: 'string', display: [{ name: 'Valid Until',     locale: 'en-US' }] },
+            },
+          },
+        },
       },
     };
   }
