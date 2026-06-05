@@ -16,14 +16,10 @@ import type { Response } from 'express';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Encoder, Tag } from 'cbor-x';
+import { mdocCborEncode as cborEncode, MdocTag } from '../common/mdoc-cbor';
 
-// ISO 18013-5 and COSE require plain CBOR maps (major type 5).
-// The top-level cbor-x `encode()` function wraps JavaScript Map objects in
-// CBOR Tag(259) — that breaks every wallet parser. The Encoder *class* does
-// NOT add Tag(259), so we use it for all mDoc/COSE encoding instead.
-const cborEncoder = new Encoder();
-const cborEncode = (value: unknown): Uint8Array => cborEncoder.encode(value);
+// MdocTag replaces cbor-x Tag for semantic tagging (Tag 18 COSE_Sign1, Tag 24 IssuerSignedItemBytes, Tag 0 tdate)
+const Tag = MdocTag;
 
 // ---------------------------------------------------------------------------
 // OID4VCI Issuer — Pre-Authorized Code Flow
