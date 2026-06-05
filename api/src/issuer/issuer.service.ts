@@ -70,6 +70,7 @@ export class IssuerService implements OnModuleInit {
   private readonly pendingAuthCodes = new Map<string, AuthCodeState>();
 
   private signingKeyPem: string;
+  private issuerCertDer: Buffer | null = null;  // DER bytes for x5chain in mDoc issuerAuth
   private baseUrl: string;
   private publicJwk: object;   // issuer public key for JWKS endpoint
   private mdocSchema?: any;    // loaded from catalog/credential-schema-mdoc.json
@@ -92,6 +93,24 @@ export class IssuerService implements OnModuleInit {
       ),
     );
     this.signingKeyPem = fs.readFileSync(keyPath, 'utf8');
+
+    // Load issuer certificate for x5chain in mDoc issuerAuth (ISO 18013-5 §9.1.2.2).
+    // Priority: ISSUER_CERT_PATH → RP_ACCESS_CERT_PATH → key path with .crt extension
+    const certPath = path.resolve(
+      this.config.get(
+        'ISSUER_CERT_PATH',
+        this.config.get('RP_ACCESS_CERT_PATH', keyPath.replace(/\.key$/, '.crt')),
+      ),
+    );
+    try {
+      const certPem = fs.readFileSync(certPath, 'utf8');
+      // Strip PEM armor to get raw DER bytes
+      const b64 = certPem.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
+      this.issuerCertDer = Buffer.from(b64, 'base64');
+      this.logger.log(`Issuer certificate loaded from ${certPath} (${this.issuerCertDer.length} bytes DER)`);
+    } catch (e) {
+      this.logger.warn(`Issuer certificate not found at ${certPath} — x5chain will be omitted from mDoc issuerAuth (wallet may reject)`);
+    }
 
     // Load mDoc schema from catalog if available
     try {
@@ -641,10 +660,16 @@ export class IssuerService implements OnModuleInit {
     const msoCbor = cborEncode(mso);
 
     // Build COSE_Sign1 over MSO (issuerAuth)
-    // protected header: { alg: -7, kid: 'issuer-key-1' }
+    // ISO 18013-5 §9.1.2.2: protected header MUST include x5chain (label 33)
+    // with the DER-encoded issuer certificate chain so the wallet can verify
+    // the signature against a trusted root.
     const protectedHeaderMap = new Map<any, any>();
-    protectedHeaderMap.set(1, -7); // alg: ES256
+    protectedHeaderMap.set(1, -7); // alg: ES256 (-7)
     protectedHeaderMap.set(4, Buffer.from('issuer-key-1')); // kid as bstr
+    if (this.issuerCertDer) {
+      // x5chain (33): single cert → bstr; chain → array of bstr
+      protectedHeaderMap.set(33, this.issuerCertDer);
+    }
     const protectedBstr: Uint8Array = cborEncode(protectedHeaderMap);
     const unprotected: Record<string, unknown> = {};
 
