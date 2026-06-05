@@ -583,7 +583,7 @@ export class IssuerService implements OnModuleInit {
           },
         },
         // Also advertise an mDoc variant of the same credential
-        [`${EAA_VCT}#mso_mdoc`]: {
+        [`${EAA_VCT}:mso_mdoc`]: {
           format: 'mso_mdoc',
           doctype: (this.mdocSchema && this.mdocSchema.doctype) || 'urn:eudi:eaa:infrastructure:access:1',
           scope: 'InfrastructureAccessEAA',
