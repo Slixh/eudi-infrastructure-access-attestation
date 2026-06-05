@@ -526,12 +526,12 @@ export class IssuerService implements OnModuleInit {
     return [issuerJwt, ...disclosures.map(d => d.encoded), ''].join('~');
   }
 
-  // ── Build mDoc (MSO_mdoc) placeholder ─────────────────────────────────────
-  // Mirrors the SD-JWT claims into an mDoc-like structure for offline checks.
-  // NOTE: This is a placeholder returning base64url(JSON). In the next step we will
-  // construct a real ISO 23220-5/18013-5 MSO_mdoc object and sign it (COSE_Sign1),
-  // using an mDoc/COSE library. The schema is kept stable so client integration
-  // can proceed meanwhile.
+  // ── Build mDoc (mso_mdoc) — ISO 18013-5 compliant IssuerSigned with issuerAuth ─
+  // Returns base64url(CBOR(IssuerSigned)) where IssuerSigned contains:
+  // - nameSpaces (camelCase): { <namespace>: { <elementIdentifier>: <elementValue>, ... } }
+  // - issuerAuth: COSE_Sign1 over the Mobile Security Object (MSO)
+  // The MSO includes docType, validityInfo, digestAlgorithm, valueDigests for each
+  // data element present in nameSpaces. Signature uses ES256 (COSE alg -7).
   private issueEaaMdoc(
     grant: any,
     pidSubject: string,
@@ -543,36 +543,87 @@ export class IssuerService implements OnModuleInit {
     const doctype: string = schema.doctype || 'urn:eudi:eaa:infrastructure:access:1';
     const ns: string = schema.claims ? Object.keys(schema.claims)[0] : 'urn:eudi:eaa:infrastructure:access:namespace:1';
 
-    const validFrom = new Date(nowMs).toISOString();
-    const validUntil = new Date(nowMs + 365 * 24 * 3600 * 1000).toISOString();
+    const validFromIso = new Date(nowMs).toISOString();
+    const validUntilIso = new Date(nowMs + 365 * 24 * 3600 * 1000).toISOString();
 
-    // Build IssuerSigned nameSpaces per ISO 23220-5 style
-    const nameSpaces = {
+    // Build IssuerSigned.nameSpaces (camelCase per spec)
+    const nameSpaces: Record<string, Record<string, any>> = {
       [ns]: {
         granted_resource: grant.resourceId,
         grant_id: grant.id,
-        valid_from: validFrom,
-        valid_until: validUntil,
+        valid_from: validFromIso,
+        valid_until: validUntilIso,
       },
-    } as Record<string, any>;
-
-    const issuerSigned = {
-      docType: doctype,
-      issuer: this.baseUrl,
-      validityInfo: {
-        signed: validFrom,
-        validFrom,
-        validUntil,
-      },
-      nameSpaces,
-      // Optional subject binding for traceability in demo scenarios
-      subject: pidSubject,
     };
 
-    // For now, return unsigned CBOR wrapped as base64url to avoid external COSE deps.
-    // Wallets that can ingest raw IssuerSigned CBOR can still parse fields.
-    const cborPayload = cborEncode(issuerSigned);
-    return Buffer.from(cborPayload).toString('base64url');
+    // Construct Mobile Security Object (MSO) with value digests
+    const valueDigests: Record<string, Record<string, string>> = {};
+    for (const [namespace, elements] of Object.entries(nameSpaces)) {
+      const elementDigests: Record<string, string> = {};
+      for (const [elementIdentifier, elementValue] of Object.entries(elements)) {
+        const elemCbor = cborEncode(elementValue);
+        const digest = crypto.createHash('sha256').update(Buffer.from(elemCbor)).digest('base64url');
+        elementDigests[elementIdentifier] = digest;
+      }
+      valueDigests[namespace] = elementDigests;
+    }
+
+    const validityInfo = {
+      signed: validFromIso,
+      validFrom: validFromIso,
+      validUntil: validUntilIso,
+    };
+
+    const mso = {
+      version: 1,
+      digestAlgorithm: 'SHA-256',
+      docType: doctype,
+      validityInfo,
+      valueDigests,
+      // Optional subject binding for demo visibility only (non-standard in MSO)
+      // subject: pidSubject,
+    } as Record<string, unknown>;
+
+    const msoCbor = cborEncode(mso);
+
+    // Build COSE_Sign1 over MSO (issuerAuth)
+    // protected header: { alg: -7, kid: 'issuer-key-1' }
+    const protectedHeaderMap = new Map<any, any>();
+    protectedHeaderMap.set(1, -7); // alg: ES256
+    protectedHeaderMap.set(4, Buffer.from('issuer-key-1')); // kid as bstr
+    const protectedBstr: Uint8Array = cborEncode(protectedHeaderMap);
+    const unprotected: Record<string, unknown> = {};
+
+    const sigStructure = [
+      'Signature1',
+      Buffer.from(protectedBstr as any),
+      new Uint8Array(0), // external_aad
+      Buffer.from(msoCbor as any),
+    ];
+    const toBeSigned = cborEncode(sigStructure);
+
+    const signature = crypto
+      .createSign('sha256')
+      .update(Buffer.from(toBeSigned as any))
+      .sign({ key: this.signingKeyPem, dsaEncoding: 'ieee-p1363' }); // raw R||S
+
+    const coseSign1 = [
+      Buffer.from(protectedBstr as any),
+      unprotected,
+      Buffer.from(msoCbor as any),
+      Buffer.from(signature as any),
+    ];
+    const coseSign1Cbor = cborEncode(coseSign1);
+
+    // Assemble IssuerSigned with required keys: nameSpaces (camelCase) + issuerAuth
+    const issuerSigned = {
+      docType: doctype,
+      nameSpaces,
+      issuerAuth: Buffer.from(coseSign1Cbor as any),
+    } as Record<string, unknown>;
+
+    const issuerSignedCbor = cborEncode(issuerSigned);
+    return Buffer.from(issuerSignedCbor).toString('base64url');
   }
 
   // ── Issuer metadata (/.well-known/openid-credential-issuer) ───────────────
