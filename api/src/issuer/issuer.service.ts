@@ -19,9 +19,10 @@ import * as path from 'path';
 import { Encoder, Tag } from 'cbor-x';
 
 // ISO 18013-5 and COSE require plain CBOR maps (major type 5).
-// cbor-x by default wraps JavaScript Map objects in Tag(259) — that breaks
-// every Android / iOS wallet parser. Disable Tag(259) for all mDoc encoding.
-const cborEncoder = new Encoder({ useTag259ForMaps: false });
+// The top-level cbor-x `encode()` function wraps JavaScript Map objects in
+// CBOR Tag(259) — that breaks every wallet parser. The Encoder *class* does
+// NOT add Tag(259), so we use it for all mDoc/COSE encoding instead.
+const cborEncoder = new Encoder();
 const cborEncode = (value: unknown): Uint8Array => cborEncoder.encode(value);
 
 // ---------------------------------------------------------------------------
