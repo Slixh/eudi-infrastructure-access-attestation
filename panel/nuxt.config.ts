@@ -1,12 +1,10 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  compatibilityDate: '2025-05-15',
+  compatibilityDate: '2025-06-05',
 
   devtools: { enabled: true },
 
-  // All source files (pages, layouts, components, assets, …) live in app/.
-  // Config files (nuxt.config.ts, package.json, …) stay at the panel root.
-  srcDir: 'app',
+  // Nuxt 4 default: srcDir is 'app/' — no override needed.
 
   // Admin panel — no need for SSR. Avoids Docker-internal fetch issues where
   // the panel container can't reach the public API domain during server render.
@@ -36,8 +34,6 @@ export default defineNuxtConfig({
   },
 
   icon: {
-    // Uses Iconify under the hood — any icon set from iconify.design works.
-    // Example usage: <Icon name="heroicons:check-circle" />
     serverBundle: {
       collections: ['heroicons', 'lucide'],
     },
@@ -45,7 +41,8 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      // API base URL — override with NUXT_PUBLIC_API_BASE in .env
+      // API base URL — override with NUXT_PUBLIC_API_BASE in .env.local for dev
+      // or via environment variable in production.
       apiBase: process.env.NUXT_PUBLIC_API_BASE ?? 'http://localhost:3000',
     },
   },

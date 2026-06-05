@@ -35,9 +35,16 @@ const STATUS_LABEL: Record<string, string> = {
         </UBadge>
 
         <h1 class="text-xl font-bold text-gray-900 dark:text-white mb-1">{{ data.grant.label }}</h1>
-        <p class="text-sm text-gray-500 mb-6">
-          Ressource: <strong>{{ data.grant.resourceId }}</strong>
-        </p>
+        <div class="text-sm text-gray-500 mb-6 space-y-1">
+          <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Ressourcen</p>
+          <p
+            v-for="id in data.grant.resourceId.split(',').map(s => s.trim()).filter(Boolean)"
+            :key="id"
+            class="font-mono text-sm text-gray-700 dark:text-gray-300"
+          >
+            {{ id }}
+          </p>
+        </div>
 
         <AppQrCode :value="data.deepLink" :size="240" class="mx-auto mb-6" />
 
@@ -48,10 +55,23 @@ const STATUS_LABEL: Record<string, string> = {
           Anderes Gerät? QR-Code scannen.
         </p>
 
-        <UCard class="text-left" variant="soft">
-          <p class="text-xs text-gray-400 mb-1">Deep-Link</p>
-          <p class="font-mono text-xs text-gray-600 dark:text-gray-300 break-all">{{ data.deepLink }}</p>
-        </UCard>
+        <UCollapsible class="text-left">
+          <UButton
+            variant="ghost"
+            color="neutral"
+            size="sm"
+            trailing-icon="heroicons:chevron-down"
+            class="w-full justify-between text-gray-400"
+            :ui="{ trailingIcon: 'transition-transform ui-open:rotate-180' }"
+          >
+            Deep-Link anzeigen
+          </UButton>
+          <template #content>
+            <div class="mt-2 rounded-lg bg-gray-100 dark:bg-gray-800 p-3">
+              <p class="font-mono text-xs text-gray-600 dark:text-gray-300 break-all">{{ data.deepLink }}</p>
+            </div>
+          </template>
+        </UCollapsible>
       </template>
 
     </UCard>

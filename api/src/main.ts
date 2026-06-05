@@ -75,6 +75,23 @@ async function bootstrap() {
     .build();
   SwaggerModule.setup('api', app, SwaggerModule.createDocument(app, config));
 
+  // ── CORS ───────────────────────────────────────────────────────────────────
+  // CORS_ORIGIN can be a comma-separated list of allowed origins.
+  // Falls back to localhost:3001 for local dev.
+  const rawOrigins = process.env.CORS_ORIGIN ?? 'http://localhost:3001';
+  const allowedOrigins = rawOrigins.split(',').map((o) => o.trim());
+  app.enableCors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (curl, Swagger, server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS: origin "${origin}" not allowed`));
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  });
+
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
   logger.log(`Server running on http://localhost:${port}`);

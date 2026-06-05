@@ -34,7 +34,7 @@ importers:
         version: 7.8.0
       '@prisma/client':
         specifier: ^7.8.0
-        version: 7.8.0(prisma@7.8.0(@types/react@19.2.16)(better-sqlite3@12.10.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3))(typescript@6.0.3)
+        version: 7.8.0(prisma@7.8.0(@types/react@19.2.16)(better-sqlite3@12.10.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.8.3))(typescript@5.8.3)
       '@sd-jwt/core':
         specifier: ^0.19.0
         version: 0.19.0
@@ -43,22 +43,28 @@ importers:
         version: 0.19.0
       '@sphereon/did-auth-siop':
         specifier: ^0.20.1
-        version: 0.20.1(typescript@6.0.3)
+        version: 0.20.1(typescript@5.8.3)
       '@sphereon/oid4vci-common':
         specifier: ^0.20.1
-        version: 0.20.1(typescript@6.0.3)
+        version: 0.20.1(typescript@5.8.3)
       '@sphereon/oid4vci-issuer':
         specifier: ^0.20.1
-        version: 0.20.1(@noble/hashes@1.8.0)(typescript@6.0.3)
+        version: 0.20.1(@noble/hashes@2.2.0)(typescript@5.8.3)
       '@sphereon/ssi-sdk-ext.did-utils':
         specifier: ^0.37.1
-        version: 0.37.1(better-sqlite3@12.10.0)(mysql2@3.15.3)(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3))(typescript@6.0.3)
+        version: 0.37.1(better-sqlite3@12.10.0)(mysql2@3.15.3)(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3))(typescript@5.8.3)
+      '@transmute/cose':
+        specifier: ^0.3.0
+        version: 0.3.0
       better-sqlite3:
         specifier: ^12.10.0
         version: 12.10.0
       bs58:
         specifier: ^6.0.0
         version: 6.0.0
+      cbor-x:
+        specifier: ^1.6.4
+        version: 1.6.4
       class-transformer:
         specifier: ^0.5.1
         version: 0.5.1
@@ -73,7 +79,7 @@ importers:
         version: 6.2.3
       prisma:
         specifier: ^7.8.0
-        version: 7.8.0(@types/react@19.2.16)(better-sqlite3@12.10.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3)
+        version: 7.8.0(@types/react@19.2.16)(better-sqlite3@12.10.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.8.3)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -89,7 +95,7 @@ importers:
         version: 11.0.21(@types/node@25.9.1)
       '@nestjs/schematics':
         specifier: ^11.1.0
-        version: 11.1.0(chokidar@4.0.3)(typescript@6.0.3)
+        version: 11.1.0(chokidar@4.0.3)(typescript@5.8.3)
       '@nestjs/testing':
         specifier: ^11.1.24
         version: 11.1.24(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.24(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.1.24)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.1.24(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.24))
@@ -107,19 +113,19 @@ importers:
         version: 11.0.0
       jest:
         specifier: ^30.4.2
-        version: 30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3))
+        version: 30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3))
       ts-jest:
         specifier: ^29.4.11
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3)))(typescript@6.0.3)
+        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3)))(typescript@5.8.3)
       ts-node:
         specifier: ^10.9.2
-        version: 10.9.2(@types/node@25.9.1)(typescript@6.0.3)
+        version: 10.9.2(@types/node@25.9.1)(typescript@5.8.3)
       tsx:
         specifier: ^4.22.4
         version: 4.22.4
       typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
+        specifier: ~5.8.3
+        version: 5.8.3
 
 packages:
 
@@ -314,6 +320,36 @@ packages:
 
   '@casbin/expression-eval@5.3.0':
     resolution: {integrity: sha512-mMTHMYXcnBBv/zMvxMpcdVyt2bfw8Y0GnmRLbkFQ1CVJZb4XZp7xWjRh7ymOLuJdsu58rci9gmOOv/99DtJvPA==}
+
+  '@cbor-extract/cbor-extract-darwin-arm64@2.2.2':
+    resolution: {integrity: sha512-ZKZ/F8US7JR92J4DMct6cLW/Y66o2K576+zjlEN/MevH70bFIsB10wkZEQPLzl2oNh2SMGy55xpJ9JoBRl5DOA==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@cbor-extract/cbor-extract-darwin-x64@2.2.2':
+    resolution: {integrity: sha512-32b1mgc+P61Js+KW9VZv/c+xRw5EfmOcPx990JbCBSkYJFY0l25VinvyyWfl+3KjibQmAcYwmyzKF9J4DyKP/Q==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@cbor-extract/cbor-extract-linux-arm64@2.2.2':
+    resolution: {integrity: sha512-wfqgzqCAy/Vn8i6WVIh7qZd0DdBFaWBjPdB6ma+Wihcjv0gHqD/mw3ouVv7kbbUNrab6dKEx/w3xQZEdeXIlzg==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@cbor-extract/cbor-extract-linux-arm@2.2.2':
+    resolution: {integrity: sha512-tNg0za41TpQfkhWjptD+0gSD2fggMiDCSacuIeELyb2xZhr7PrhPe5h66Jc67B/5dmpIhI2QOUtv4SBsricyYQ==}
+    cpu: [arm]
+    os: [linux]
+
+  '@cbor-extract/cbor-extract-linux-x64@2.2.2':
+    resolution: {integrity: sha512-rpiLnVEsqtPJ+mXTdx1rfz4RtUGYIUg2rUAZgd1KjiC1SehYUSkJN7Yh+aVfSjvCGtVP0/bfkQkXpPXKbmSUaA==}
+    cpu: [x64]
+    os: [linux]
+
+  '@cbor-extract/cbor-extract-win32-x64@2.2.2':
+    resolution: {integrity: sha512-dI+9P7cfWxkTQ+oE+7Aa6onEn92PHgfWXZivjNheCRmTBDBf2fx6RyTi0cmgpYLnD1KLZK9ZYrMxaPZ4oiXhGA==}
+    cpu: [x64]
+    os: [win32]
 
   '@colors/colors@1.5.0':
     resolution: {integrity: sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==}
@@ -1404,6 +1440,12 @@ packages:
   '@tokenizer/token@0.3.0':
     resolution: {integrity: sha512-OvjF+z51L3ov0OyAU0duzsYuvO01PH7x4t6DJx+guahgTnBHkhJdG7soQeTSFLWN3efnHyibZ4Z8l2EuWwJN3A==}
 
+  '@transmute/cose@0.3.0':
+    resolution: {integrity: sha512-ZO9xdviadR3eEoSmZjqgV2iwHh6++b+FYT+H6h8dEPWF4wSygSX/n5A8ijmXWE5aYBOynDqHlWL+u0yauZ6vUg==}
+
+  '@transmute/rfc9162@0.0.5':
+    resolution: {integrity: sha512-cWeUMvx2qdzJUomiKFs2LZo2ojkOt2Qjqh+3FEPQUIpVOyU/hZwo1nr+dx/p3ETA47lBRUCRFCJI+NtgKB2KAQ==}
+
   '@trust/keyto@1.0.1':
     resolution: {integrity: sha512-OXTmKkrnkwktCX86XA7eWs1TQ6u64enm0syzAfNhjigbuGLy5aLhbhRYWtjt4zzdG/irWudluheRZ9Ic9pCwsA==}
 
@@ -2006,6 +2048,17 @@ packages:
 
   casbin@5.50.0:
     resolution: {integrity: sha512-ikARwU4ln2/3SzyG8cxFwjXgHhjmieapt62LwaeKZ0VDsqZ2meq3BCaJuW2Ept0cVx3C4j+1C2G9Rh6e/Fl+mQ==}
+
+  cbor-extract@2.2.2:
+    resolution: {integrity: sha512-hlSxxI9XO2yQfe9g6msd3g4xCfDqK5T5P0fRMLuaLHhxn4ViPrm+a+MUfhrvH2W962RGxcBwEGzLQyjbDG1gng==}
+    hasBin: true
+
+  cbor-web@9.0.2:
+    resolution: {integrity: sha512-N6gU2GsJS8RR5gy1d9wQcSPgn9FGJFY7KNvdDRlwHfz6kCxrQr2TDnrjXHmr6TFSl6Fd0FC4zRnityEldjRGvQ==}
+    engines: {node: '>=16'}
+
+  cbor-x@1.6.4:
+    resolution: {integrity: sha512-UGKHjp6RHC6QuZ2yy5LCKm7MojM4716DwoSaqwQpaH4DvZvbBTGcoDNTiG9Y2lByXZYFEs9WRkS5tLl96IrF1Q==}
 
   chalk@4.1.2:
     resolution: {integrity: sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==}
@@ -3391,6 +3444,10 @@ packages:
       encoding:
         optional: true
 
+  node-gyp-build-optional-packages@5.1.1:
+    resolution: {integrity: sha512-+P72GAjVAbTxjjwUmwjVrqrdZROD4nf8KgpBoDxqXXTiYZZt/ud60dE5yvCSr9lRO8e8yv6kgJIC0K0PfZFVQw==}
+    hasBin: true
+
   node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
 
@@ -4233,13 +4290,13 @@ packages:
       typeorm-aurora-data-api-driver:
         optional: true
 
-  typescript@5.9.3:
-    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+  typescript@5.8.3:
+    resolution: {integrity: sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==}
     engines: {node: '>=14.17'}
     hasBin: true
 
-  typescript@6.0.3:
-    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -4715,6 +4772,24 @@ snapshots:
     dependencies:
       jsep: 0.3.5
 
+  '@cbor-extract/cbor-extract-darwin-arm64@2.2.2':
+    optional: true
+
+  '@cbor-extract/cbor-extract-darwin-x64@2.2.2':
+    optional: true
+
+  '@cbor-extract/cbor-extract-linux-arm64@2.2.2':
+    optional: true
+
+  '@cbor-extract/cbor-extract-linux-arm@2.2.2':
+    optional: true
+
+  '@cbor-extract/cbor-extract-linux-x64@2.2.2':
+    optional: true
+
+  '@cbor-extract/cbor-extract-win32-x64@2.2.2':
+    optional: true
+
   '@colors/colors@1.5.0':
     optional: true
 
@@ -5066,7 +5141,7 @@ snapshots:
       jest-util: 30.4.1
       slash: 3.0.0
 
-  '@jest/core@30.4.2(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3))':
+  '@jest/core@30.4.2(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3))':
     dependencies:
       '@jest/console': 30.4.1
       '@jest/pattern': 30.4.0
@@ -5082,7 +5157,7 @@ snapshots:
       fast-json-stable-stringify: 2.1.0
       graceful-fs: 4.2.11
       jest-changed-files: 30.4.1
-      jest-config: 30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3))
+      jest-config: 30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3))
       jest-haste-map: 30.4.1
       jest-message-util: 30.4.1
       jest-regex-util: 30.4.0
@@ -5384,6 +5459,17 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@nestjs/schematics@11.1.0(chokidar@4.0.3)(typescript@5.8.3)':
+    dependencies:
+      '@angular-devkit/core': 19.2.24(chokidar@4.0.3)
+      '@angular-devkit/schematics': 19.2.24(chokidar@4.0.3)
+      comment-json: 5.0.0
+      jsonc-parser: 3.3.1
+      pluralize: 8.0.0
+      typescript: 5.8.3
+    transitivePeerDependencies:
+      - chokidar
+
   '@nestjs/schematics@11.1.0(chokidar@4.0.3)(typescript@5.9.3)':
     dependencies:
       '@angular-devkit/core': 19.2.24(chokidar@4.0.3)
@@ -5392,17 +5478,6 @@ snapshots:
       jsonc-parser: 3.3.1
       pluralize: 8.0.0
       typescript: 5.9.3
-    transitivePeerDependencies:
-      - chokidar
-
-  '@nestjs/schematics@11.1.0(chokidar@4.0.3)(typescript@6.0.3)':
-    dependencies:
-      '@angular-devkit/core': 19.2.24(chokidar@4.0.3)
-      '@angular-devkit/schematics': 19.2.24(chokidar@4.0.3)
-      comment-json: 5.0.0
-      jsonc-parser: 3.3.1
-      pluralize: 8.0.0
-      typescript: 6.0.3
     transitivePeerDependencies:
       - chokidar
 
@@ -5572,12 +5647,12 @@ snapshots:
 
   '@prisma/client-runtime-utils@7.8.0': {}
 
-  '@prisma/client@7.8.0(prisma@7.8.0(@types/react@19.2.16)(better-sqlite3@12.10.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3))(typescript@6.0.3)':
+  '@prisma/client@7.8.0(prisma@7.8.0(@types/react@19.2.16)(better-sqlite3@12.10.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.8.3))(typescript@5.8.3)':
     dependencies:
       '@prisma/client-runtime-utils': 7.8.0
     optionalDependencies:
-      prisma: 7.8.0(@types/react@19.2.16)(better-sqlite3@12.10.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3)
-      typescript: 6.0.3
+      prisma: 7.8.0(@types/react@19.2.16)(better-sqlite3@12.10.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.8.3)
+      typescript: 5.8.3
 
   '@prisma/config@7.8.0':
     dependencies:
@@ -5592,7 +5667,7 @@ snapshots:
 
   '@prisma/debug@7.8.0': {}
 
-  '@prisma/dev@0.24.3(typescript@6.0.3)':
+  '@prisma/dev@0.24.3(typescript@5.8.3)':
     dependencies:
       '@electric-sql/pglite': 0.4.1
       '@electric-sql/pglite-socket': 0.1.1(@electric-sql/pglite@0.4.1)
@@ -5609,7 +5684,7 @@ snapshots:
       proper-lockfile: 4.1.2
       remeda: 2.33.4
       std-env: 3.10.0
-      valibot: 1.2.0(typescript@6.0.3)
+      valibot: 1.2.0(typescript@5.8.3)
       zeptomatch: 2.1.0
     transitivePeerDependencies:
       - typescript
@@ -5808,15 +5883,15 @@ snapshots:
     dependencies:
       '@sinonjs/commons': 3.0.1
 
-  '@sphereon/did-auth-siop@0.20.1(typescript@6.0.3)':
+  '@sphereon/did-auth-siop@0.20.1(typescript@5.8.3)':
     dependencies:
       '@astronautlabs/jsonpath': 1.1.2
-      '@sphereon/jarm': 0.20.1(typescript@6.0.3)
-      '@sphereon/oid4vc-common': 0.20.1(typescript@6.0.3)
+      '@sphereon/jarm': 0.20.1(typescript@5.8.3)
+      '@sphereon/oid4vc-common': 0.20.1(typescript@5.8.3)
       '@sphereon/pex': 5.0.0-unstable.28
-      '@sphereon/ssi-types': 0.36.1-next.159(typescript@6.0.3)
+      '@sphereon/ssi-types': 0.36.1-next.159(typescript@5.8.3)
       cross-fetch: 4.1.0
-      dcql: 1.0.1(typescript@6.0.3)
+      dcql: 1.0.1(typescript@5.8.3)
       debug: 4.4.3
       events: 3.3.0
       jwt-decode: 4.0.0
@@ -5837,10 +5912,10 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@sphereon/jarm@0.20.1(typescript@6.0.3)':
+  '@sphereon/jarm@0.20.1(typescript@5.8.3)':
     dependencies:
-      '@sphereon/oid4vc-common': 0.20.1(typescript@6.0.3)
-      valibot: 0.42.1(typescript@6.0.3)
+      '@sphereon/oid4vc-common': 0.20.1(typescript@5.8.3)
+      valibot: 0.42.1(typescript@5.8.3)
     transitivePeerDependencies:
       - supports-color
       - typescript
@@ -5857,9 +5932,9 @@ snapshots:
       '@js-joda/timezone': 2.3.0(@js-joda/core@5.6.3)
       format-util: 1.0.5
 
-  '@sphereon/oid4vc-common@0.20.1(typescript@6.0.3)':
+  '@sphereon/oid4vc-common@0.20.1(typescript@5.8.3)':
     dependencies:
-      '@sphereon/ssi-types': 0.36.1-next.159(typescript@6.0.3)
+      '@sphereon/ssi-types': 0.36.1-next.159(typescript@5.8.3)
       jwt-decode: 4.0.0
       uint8arrays: 3.1.1
       uuid: 9.0.1
@@ -5867,10 +5942,10 @@ snapshots:
       - supports-color
       - typescript
 
-  '@sphereon/oid4vci-common@0.20.1(typescript@6.0.3)':
+  '@sphereon/oid4vci-common@0.20.1(typescript@5.8.3)':
     dependencies:
-      '@sphereon/oid4vc-common': 0.20.1(typescript@6.0.3)
-      '@sphereon/ssi-types': 0.36.1-next.159(typescript@6.0.3)
+      '@sphereon/oid4vc-common': 0.20.1(typescript@5.8.3)
+      '@sphereon/ssi-types': 0.36.1-next.159(typescript@5.8.3)
       cross-fetch: 4.1.0
       debug: 4.4.3
       jwt-decode: 4.0.0
@@ -5881,12 +5956,12 @@ snapshots:
       - supports-color
       - typescript
 
-  '@sphereon/oid4vci-issuer@0.20.1(@noble/hashes@1.8.0)(typescript@6.0.3)':
+  '@sphereon/oid4vci-issuer@0.20.1(@noble/hashes@2.2.0)(typescript@5.8.3)':
     dependencies:
-      '@sphereon/oid4vc-common': 0.20.1(typescript@6.0.3)
-      '@sphereon/oid4vci-common': 0.20.1(typescript@6.0.3)
-      '@sphereon/ssi-express-support': 0.34.1-next.3(@noble/hashes@1.8.0)
-      '@sphereon/ssi-types': 0.36.1-next.159(typescript@6.0.3)
+      '@sphereon/oid4vc-common': 0.20.1(typescript@5.8.3)
+      '@sphereon/oid4vci-common': 0.20.1(typescript@5.8.3)
+      '@sphereon/ssi-express-support': 0.34.1-next.3(@noble/hashes@2.2.0)
+      '@sphereon/ssi-types': 0.36.1-next.159(typescript@5.8.3)
       short-uuid: 4.2.2
       uuid: 9.0.1
     transitivePeerDependencies:
@@ -5915,7 +5990,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@sphereon/ssi-express-support@0.34.1-next.3(@noble/hashes@1.8.0)':
+  '@sphereon/ssi-express-support@0.34.1-next.3(@noble/hashes@2.2.0)':
     dependencies:
       '@sphereon/ssi-types': 0.34.1-next.3
       body-parser: 1.20.5
@@ -5932,20 +6007,20 @@ snapshots:
       qs: 6.15.2
       uint8arrays: 3.1.1
     optionalDependencies:
-      '@noble/hashes': 1.8.0
+      '@noble/hashes': 2.2.0
     transitivePeerDependencies:
       - supports-color
 
-  '@sphereon/ssi-sdk-ext.did-utils@0.37.1(better-sqlite3@12.10.0)(mysql2@3.15.3)(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3))(typescript@6.0.3)':
+  '@sphereon/ssi-sdk-ext.did-utils@0.37.1(better-sqlite3@12.10.0)(mysql2@3.15.3)(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3))(typescript@5.8.3)':
     dependencies:
       '@ethersproject/networks': 5.8.0
       '@ethersproject/transactions': 5.8.0
       '@sphereon/did-uni-client': 0.6.4
-      '@sphereon/ssi-sdk-ext.key-utils': 0.37.1(typescript@6.0.3)
-      '@sphereon/ssi-sdk-ext.x509-utils': 0.37.1(typescript@6.0.3)
-      '@sphereon/ssi-sdk.agent-config': 0.37.1(better-sqlite3@12.10.0)(mysql2@3.15.3)(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3))
-      '@sphereon/ssi-sdk.core': 0.37.1(typescript@6.0.3)
-      '@sphereon/ssi-types': 0.37.1(typescript@6.0.3)
+      '@sphereon/ssi-sdk-ext.key-utils': 0.37.1(typescript@5.8.3)
+      '@sphereon/ssi-sdk-ext.x509-utils': 0.37.1(typescript@5.8.3)
+      '@sphereon/ssi-sdk.agent-config': 0.37.1(better-sqlite3@12.10.0)(mysql2@3.15.3)(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3))
+      '@sphereon/ssi-sdk.core': 0.37.1(typescript@5.8.3)
+      '@sphereon/ssi-types': 0.37.1(typescript@5.8.3)
       '@stablelib/ed25519': 1.0.3
       '@veramo/core': 4.2.0
       '@veramo/utils': 4.2.0
@@ -5975,13 +6050,13 @@ snapshots:
       - typeorm-aurora-data-api-driver
       - typescript
 
-  '@sphereon/ssi-sdk-ext.key-utils@0.37.1(typescript@6.0.3)':
+  '@sphereon/ssi-sdk-ext.key-utils@0.37.1(typescript@5.8.3)':
     dependencies:
       '@ethersproject/random': 5.8.0
       '@noble/curves': 1.7.0
       '@noble/hashes': 1.6.1
-      '@sphereon/ssi-sdk-ext.x509-utils': 0.37.1(typescript@6.0.3)
-      '@sphereon/ssi-types': 0.37.1(typescript@6.0.3)
+      '@sphereon/ssi-sdk-ext.x509-utils': 0.37.1(typescript@5.8.3)
+      '@sphereon/ssi-types': 0.37.1(typescript@5.8.3)
       '@stablelib/ed25519': 1.0.3
       '@trust/keyto': 1.0.1
       '@veramo/core': 4.2.0
@@ -5999,12 +6074,12 @@ snapshots:
       - supports-color
       - typescript
 
-  '@sphereon/ssi-sdk-ext.x509-utils@0.37.1(typescript@6.0.3)':
+  '@sphereon/ssi-sdk-ext.x509-utils@0.37.1(typescript@5.8.3)':
     dependencies:
       '@peculiar/asn1-schema': 2.7.0
       '@peculiar/asn1-x509': 2.7.0
       '@peculiar/x509': 1.14.3
-      '@sphereon/ssi-types': 0.37.1(typescript@6.0.3)
+      '@sphereon/ssi-types': 0.37.1(typescript@5.8.3)
       '@trust/keyto': 1.0.1
       debug: 4.4.3
       js-x509-utils: 1.0.7
@@ -6015,13 +6090,13 @@ snapshots:
       - supports-color
       - typescript
 
-  '@sphereon/ssi-sdk.agent-config@0.37.1(better-sqlite3@12.10.0)(mysql2@3.15.3)(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3))':
+  '@sphereon/ssi-sdk.agent-config@0.37.1(better-sqlite3@12.10.0)(mysql2@3.15.3)(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3))':
     dependencies:
       '@veramo/core': 4.2.0
       debug: 4.4.3
       jsonpointer: 5.0.1
       reflect-metadata: 0.2.2
-      typeorm: 0.3.20(better-sqlite3@12.10.0)(mysql2@3.15.3)(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3))
+      typeorm: 0.3.20(better-sqlite3@12.10.0)(mysql2@3.15.3)(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3))
       url-parse: 1.5.10
       yaml: 2.9.0
     transitivePeerDependencies:
@@ -6044,10 +6119,10 @@ snapshots:
       - ts-node
       - typeorm-aurora-data-api-driver
 
-  '@sphereon/ssi-sdk.core@0.37.1(typescript@6.0.3)':
+  '@sphereon/ssi-sdk.core@0.37.1(typescript@5.8.3)':
     dependencies:
       '@noble/hashes': 1.8.0
-      '@sphereon/ssi-types': 0.37.1(typescript@6.0.3)
+      '@sphereon/ssi-types': 0.37.1(typescript@5.8.3)
       '@veramo/core': 4.2.0
       cross-fetch: 4.1.0
       debug: 4.4.3
@@ -6080,13 +6155,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@sphereon/ssi-types@0.36.1-next.159(typescript@6.0.3)':
+  '@sphereon/ssi-types@0.36.1-next.159(typescript@5.8.3)':
     dependencies:
       '@noble/hashes': 1.6.1
       '@sd-jwt/decode': 0.15.0
       '@sd-jwt/types': 0.15.0
       '@sphereon/kmp-mdoc-core': 0.2.0-SNAPSHOT.26
-      dcql: 1.0.1(typescript@6.0.3)
+      dcql: 1.0.1(typescript@5.8.3)
       debug: 4.4.3
       events: 3.3.0
       jwt-decode: 4.0.0
@@ -6095,13 +6170,13 @@ snapshots:
       - supports-color
       - typescript
 
-  '@sphereon/ssi-types@0.37.1(typescript@6.0.3)':
+  '@sphereon/ssi-types@0.37.1(typescript@5.8.3)':
     dependencies:
       '@noble/hashes': 1.6.1
       '@sd-jwt/decode': 0.15.0
       '@sd-jwt/types': 0.15.0
       '@sphereon/kmp-mdoc-core': 0.2.0-SNAPSHOT.26
-      dcql: 1.0.1(typescript@6.0.3)
+      dcql: 1.0.1(typescript@5.8.3)
       debug: 4.4.3
       events: 3.3.0
       jwt-decode: 4.0.0
@@ -6204,6 +6279,15 @@ snapshots:
       - supports-color
 
   '@tokenizer/token@0.3.0': {}
+
+  '@transmute/cose@0.3.0':
+    dependencies:
+      '@peculiar/x509': 1.14.3
+      '@transmute/rfc9162': 0.0.5
+      cbor-web: 9.0.2
+      jose: 4.15.9
+
+  '@transmute/rfc9162@0.0.5': {}
 
   '@trust/keyto@1.0.1':
     dependencies:
@@ -6882,6 +6966,24 @@ snapshots:
       csv-parse: 5.6.0
       minimatch: 10.2.5
 
+  cbor-extract@2.2.2:
+    dependencies:
+      node-gyp-build-optional-packages: 5.1.1
+    optionalDependencies:
+      '@cbor-extract/cbor-extract-darwin-arm64': 2.2.2
+      '@cbor-extract/cbor-extract-darwin-x64': 2.2.2
+      '@cbor-extract/cbor-extract-linux-arm': 2.2.2
+      '@cbor-extract/cbor-extract-linux-arm64': 2.2.2
+      '@cbor-extract/cbor-extract-linux-x64': 2.2.2
+      '@cbor-extract/cbor-extract-win32-x64': 2.2.2
+    optional: true
+
+  cbor-web@9.0.2: {}
+
+  cbor-x@1.6.4:
+    optionalDependencies:
+      cbor-extract: 2.2.2
+
   chalk@4.1.2:
     dependencies:
       ansi-styles: 4.3.0
@@ -7072,9 +7174,9 @@ snapshots:
 
   dayjs@1.11.21: {}
 
-  dcql@1.0.1(typescript@6.0.3):
+  dcql@1.0.1(typescript@5.8.3):
     dependencies:
-      valibot: 1.0.0-beta.8(typescript@6.0.3)
+      valibot: 1.0.0-beta.8(typescript@5.8.3)
     transitivePeerDependencies:
       - typescript
 
@@ -7834,15 +7936,15 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
-  jest-cli@30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3)):
+  jest-cli@30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3)):
     dependencies:
-      '@jest/core': 30.4.2(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3))
+      '@jest/core': 30.4.2(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3))
       '@jest/test-result': 30.4.1
       '@jest/types': 30.4.1
       chalk: 4.1.2
       exit-x: 0.2.2
       import-local: 3.2.0
-      jest-config: 30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3))
+      jest-config: 30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3))
       jest-util: 30.4.1
       jest-validate: 30.4.1
       yargs: 17.7.2
@@ -7853,7 +7955,7 @@ snapshots:
       - supports-color
       - ts-node
 
-  jest-config@30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3)):
+  jest-config@30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3)):
     dependencies:
       '@babel/core': 7.29.7
       '@jest/get-type': 30.1.0
@@ -7880,7 +7982,7 @@ snapshots:
       strip-json-comments: 3.1.1
     optionalDependencies:
       '@types/node': 25.9.1
-      ts-node: 10.9.2(@types/node@25.9.1)(typescript@6.0.3)
+      ts-node: 10.9.2(@types/node@25.9.1)(typescript@5.8.3)
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
@@ -8107,12 +8209,12 @@ snapshots:
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
-  jest@30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3)):
+  jest@30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3)):
     dependencies:
-      '@jest/core': 30.4.2(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3))
+      '@jest/core': 30.4.2(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3))
       '@jest/types': 30.4.1
       import-local: 3.2.0
-      jest-cli: 30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3))
+      jest-cli: 30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3))
     transitivePeerDependencies:
       - '@types/node'
       - babel-plugin-macros
@@ -8509,6 +8611,11 @@ snapshots:
     dependencies:
       whatwg-url: 5.0.0
 
+  node-gyp-build-optional-packages@5.1.1:
+    dependencies:
+      detect-libc: 2.1.2
+    optional: true
+
   node-int64@0.4.0: {}
 
   node-releases@2.0.47: {}
@@ -8713,17 +8820,17 @@ snapshots:
       react-is-18: react-is@18.3.1
       react-is-19: react-is@19.2.7
 
-  prisma@7.8.0(@types/react@19.2.16)(better-sqlite3@12.10.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3):
+  prisma@7.8.0(@types/react@19.2.16)(better-sqlite3@12.10.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.8.3):
     dependencies:
       '@prisma/config': 7.8.0
-      '@prisma/dev': 0.24.3(typescript@6.0.3)
+      '@prisma/dev': 0.24.3(typescript@5.8.3)
       '@prisma/engines': 7.8.0
       '@prisma/studio-core': 0.27.3(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       mysql2: 3.15.3
       postgres: 3.4.7
     optionalDependencies:
       better-sqlite3: 12.10.0
-      typescript: 6.0.3
+      typescript: 5.8.3
     transitivePeerDependencies:
       - '@types/react'
       - '@types/react-dom'
@@ -9189,18 +9296,18 @@ snapshots:
 
   tr46@0.0.3: {}
 
-  ts-jest@29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3)))(typescript@6.0.3):
+  ts-jest@29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3)))(typescript@5.8.3):
     dependencies:
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
       handlebars: 4.7.9
-      jest: 30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3))
+      jest: 30.4.2(@types/node@25.9.1)(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3))
       json5: 2.2.3
       lodash.memoize: 4.1.2
       make-error: 1.3.6
       semver: 7.8.1
       type-fest: 4.41.0
-      typescript: 6.0.3
+      typescript: 5.8.3
       yargs-parser: 21.1.1
     optionalDependencies:
       '@babel/core': 7.29.7
@@ -9209,7 +9316,7 @@ snapshots:
       babel-jest: 30.4.1(@babel/core@7.29.7)
       jest-util: 30.4.1
 
-  ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3):
+  ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       '@tsconfig/node10': 1.0.12
@@ -9223,7 +9330,7 @@ snapshots:
       create-require: 1.1.1
       diff: 4.0.4
       make-error: 1.3.6
-      typescript: 6.0.3
+      typescript: 5.8.3
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
 
@@ -9291,7 +9398,7 @@ snapshots:
 
   typedarray@0.0.6: {}
 
-  typeorm@0.3.20(better-sqlite3@12.10.0)(mysql2@3.15.3)(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3)):
+  typeorm@0.3.20(better-sqlite3@12.10.0)(mysql2@3.15.3)(ts-node@10.9.2(@types/node@25.9.1)(typescript@5.8.3)):
     dependencies:
       '@sqltools/formatter': 1.2.5
       app-root-path: 3.1.0
@@ -9311,13 +9418,13 @@ snapshots:
     optionalDependencies:
       better-sqlite3: 12.10.0
       mysql2: 3.15.3
-      ts-node: 10.9.2(@types/node@25.9.1)(typescript@6.0.3)
+      ts-node: 10.9.2(@types/node@25.9.1)(typescript@5.8.3)
     transitivePeerDependencies:
       - supports-color
 
-  typescript@5.9.3: {}
+  typescript@5.8.3: {}
 
-  typescript@6.0.3: {}
+  typescript@5.9.3: {}
 
   uglify-js@3.19.3:
     optional: true
@@ -9410,17 +9517,17 @@ snapshots:
       '@types/istanbul-lib-coverage': 2.0.6
       convert-source-map: 2.0.0
 
-  valibot@0.42.1(typescript@6.0.3):
+  valibot@0.42.1(typescript@5.8.3):
     optionalDependencies:
-      typescript: 6.0.3
+      typescript: 5.8.3
 
-  valibot@1.0.0-beta.8(typescript@6.0.3):
+  valibot@1.0.0-beta.8(typescript@5.8.3):
     optionalDependencies:
-      typescript: 6.0.3
+      typescript: 5.8.3
 
-  valibot@1.2.0(typescript@6.0.3):
+  valibot@1.2.0(typescript@5.8.3):
     optionalDependencies:
-      typescript: 6.0.3
+      typescript: 5.8.3
 
   validator@13.15.35: {}
 

@@ -4,6 +4,8 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateGrantDto } from './dto/create-grant.dto';
 import { GrantStatus } from '@prisma/client';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { buildPrismaPage, paginate, isPaginated } from '../common/pagination.util';
 
 @Injectable()
 export class GrantService {
@@ -14,23 +16,48 @@ export class GrantService {
   ) {}
 
   async create(dto: CreateGrantDto) {
+    // Resolve resource identifiers to auto-populate the legacy resourceId claim
+    const resources = await this.prisma.resource.findMany({
+      where: { id: { in: dto.resourceEntityIds } },
+      select: { id: true, identifier: true },
+    });
+    const resourceId = resources.map((r) => r.identifier).join(',');
+
     return this.prisma.grant.create({
       data: {
-        label:         dto.label,
-        resourceId:    dto.resourceId,
+        label:        dto.label,
+        resourceId,
+        resources:    { connect: dto.resourceEntityIds.map((id) => ({ id })) },
         pidFirstName:  dto.pidFirstName  ?? null,
         pidFamilyName: dto.pidFamilyName ?? null,
         pidBirthdate:  dto.pidBirthdate  ?? null,
       },
+      include: { resources: { include: { location: true } } },
     });
   }
 
-  async findAll() {
-    return this.prisma.grant.findMany({ orderBy: { createdAt: 'desc' } });
+  async findAll(pagination: PaginationDto = {}) {
+    const query = {
+      orderBy: { createdAt: 'desc' as const },
+      include: { resources: { include: { location: true } } },
+    };
+
+    if (!isPaginated(pagination)) {
+      return this.prisma.grant.findMany(query);
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.grant.findMany({ ...query, ...buildPrismaPage(pagination) }),
+      this.prisma.grant.count(),
+    ]);
+    return paginate(data, total, pagination);
   }
 
   async findOne(id: string) {
-    const grant = await this.prisma.grant.findUnique({ where: { id } });
+    const grant = await this.prisma.grant.findUnique({
+      where: { id },
+      include: { resources: { include: { location: true } } },
+    });
     if (!grant) throw new NotFoundException(`Grant ${id} not found`);
     return grant;
   }
