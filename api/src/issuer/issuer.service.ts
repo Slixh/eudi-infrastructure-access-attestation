@@ -200,7 +200,7 @@ export class IssuerService implements OnModuleInit {
     // misinterpreting it as tx_code present.
     const offer = {
       credential_issuer: this.baseUrl,   // must match issuer in metadata (root, no /issuer)
-      credential_configuration_ids: [EAA_VCT, `${EAA_VCT}:mso_mdoc`],
+      credential_configuration_ids: [`${EAA_VCT}:mso_mdoc`],
       grants: {
         'urn:ietf:params:oauth:grant-type:pre-authorized_code': {
           'pre-authorized_code': preAuthCode,
@@ -219,7 +219,7 @@ export class IssuerService implements OnModuleInit {
 
     return {
       credential_issuer: this.baseUrl,
-      credential_configuration_ids: [EAA_VCT, `${EAA_VCT}:mso_mdoc`],
+      credential_configuration_ids: [`${EAA_VCT}:mso_mdoc`],
       grants: {
         'urn:ietf:params:oauth:grant-type:pre-authorized_code': {
           'pre-authorized_code': preAuthCode,
