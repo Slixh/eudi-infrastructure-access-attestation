@@ -16,7 +16,7 @@ import type { Response } from 'express';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import { encode as cborEncode } from 'cbor-x';
+import { encode as cborEncode, Tag } from 'cbor-x';
 
 // ---------------------------------------------------------------------------
 // OID4VCI Issuer — Pre-Authorized Code Flow
@@ -613,13 +613,16 @@ export class IssuerService implements OnModuleInit {
       Buffer.from(msoCbor as any),
       Buffer.from(signature as any),
     ];
-    const coseSign1Cbor = cborEncode(coseSign1);
+
+    // Wrap COSE_Sign1 with CBOR semantic tag 18 as required by many parsers
+    // cbor-x Tag constructor is (value, tag)
+    const coseSign1Tagged = new Tag(coseSign1, 18);
 
     // Assemble IssuerSigned with required keys: nameSpaces (camelCase) + issuerAuth
     const issuerSigned = {
       docType: doctype,
       nameSpaces,
-      issuerAuth: Buffer.from(coseSign1Cbor as any),
+      issuerAuth: coseSign1Tagged,
     } as Record<string, unknown>;
 
     const issuerSignedCbor = cborEncode(issuerSigned);
