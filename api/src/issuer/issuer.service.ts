@@ -560,7 +560,8 @@ export class IssuerService implements OnModuleInit {
     // 2) Create IssuerSignedItem for each element, encode to bytes, wrap as Tag(24),
     //    and compute SHA-256 digest over the raw payload bytes.
     const issuerSignedItems: any[] = []; // array of Tag(24, <bytes>)
-    const valueDigests: Record<string, Record<string, Map<number, Buffer>>> = { [ns]: {} };
+    // Per ISO 18013-5, valueDigests[namespace] must be a map of uint digestID → bstr (raw digest)
+    const valueDigestsNs = new Map<number, Buffer>();
 
     for (let i = 0; i < elements.length; i++) {
       const { id: elementIdentifier, value: elementValue } = elements[i];
@@ -584,11 +585,8 @@ export class IssuerService implements OnModuleInit {
 
       // Compute SHA-256 digest over the payload bytes. Store as Buffer (CBOR bstr)
       const digestBuf = crypto.createHash('sha256').update(Buffer.from(itemBytes)).digest();
-
-      if (!valueDigests[ns][elementIdentifier]) {
-        valueDigests[ns][elementIdentifier] = new Map<number, Buffer>();
-      }
-      valueDigests[ns][elementIdentifier].set(digestID, digestBuf); // uint → bstr
+      // Insert directly by digestID (no elementIdentifier layer, no extra wrapping)
+      valueDigestsNs.set(digestID, digestBuf); // uint → bstr
     }
 
     // 3) nameSpaces must be an array of IssuerSignedItemBytes under the namespace key
@@ -627,7 +625,7 @@ export class IssuerService implements OnModuleInit {
       digestAlgorithm: 'SHA-256',
       docType: doctype,
       validityInfo,
-      valueDigests,
+      valueDigests: { [ns]: valueDigestsNs },
       deviceKey: deviceKey ?? undefined,
       // Optional subject binding for demo visibility only (non-standard in MSO)
       // subject: pidSubject,
