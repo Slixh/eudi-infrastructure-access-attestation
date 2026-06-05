@@ -198,7 +198,7 @@ export class IssuerService implements OnModuleInit {
     // misinterpreting it as tx_code present.
     const offer = {
       credential_issuer: this.baseUrl,   // must match issuer in metadata (root, no /issuer)
-      credential_configuration_ids: [EAA_VCT],
+      credential_configuration_ids: [EAA_VCT, `${EAA_VCT}:mso_mdoc`],
       grants: {
         'urn:ietf:params:oauth:grant-type:pre-authorized_code': {
           'pre-authorized_code': preAuthCode,
@@ -414,10 +414,10 @@ export class IssuerService implements OnModuleInit {
 
     return {
       credentials: [
-        {
-          format: 'dc+sd-jwt',
-          credential: credentialSdJwt,
-        },
+       {
+         format: 'dc+sd-jwt',
+         credential: credentialSdJwt,
+       },
         {
           format: 'mso_mdoc',
           // Per OID4VCI, mso_mdoc credential is a base64url-encoded COSE_Sign1/CBOR.
