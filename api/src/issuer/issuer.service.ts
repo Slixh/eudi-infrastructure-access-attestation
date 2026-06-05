@@ -217,7 +217,7 @@ export class IssuerService implements OnModuleInit {
 
     return {
       credential_issuer: this.baseUrl,
-      credential_configuration_ids: [EAA_VCT],
+      credential_configuration_ids: [EAA_VCT, `${EAA_VCT}:mso_mdoc`],
       grants: {
         'urn:ietf:params:oauth:grant-type:pre-authorized_code': {
           'pre-authorized_code': preAuthCode,
