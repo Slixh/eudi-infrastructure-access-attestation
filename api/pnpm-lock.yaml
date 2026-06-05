@@ -49,16 +49,22 @@ importers:
         version: 0.20.1(typescript@6.0.3)
       '@sphereon/oid4vci-issuer':
         specifier: ^0.20.1
-        version: 0.20.1(@noble/hashes@1.8.0)(typescript@6.0.3)
+        version: 0.20.1(@noble/hashes@2.2.0)(typescript@6.0.3)
       '@sphereon/ssi-sdk-ext.did-utils':
         specifier: ^0.37.1
         version: 0.37.1(better-sqlite3@12.10.0)(mysql2@3.15.3)(ts-node@10.9.2(@types/node@25.9.1)(typescript@6.0.3))(typescript@6.0.3)
+      '@transmute/cose':
+        specifier: ^0.3.0
+        version: 0.3.0
       better-sqlite3:
         specifier: ^12.10.0
         version: 12.10.0
       bs58:
         specifier: ^6.0.0
         version: 6.0.0
+      cbor-x:
+        specifier: ^1.6.4
+        version: 1.6.4
       class-transformer:
         specifier: ^0.5.1
         version: 0.5.1
@@ -314,6 +320,36 @@ packages:
 
   '@casbin/expression-eval@5.3.0':
     resolution: {integrity: sha512-mMTHMYXcnBBv/zMvxMpcdVyt2bfw8Y0GnmRLbkFQ1CVJZb4XZp7xWjRh7ymOLuJdsu58rci9gmOOv/99DtJvPA==}
+
+  '@cbor-extract/cbor-extract-darwin-arm64@2.2.2':
+    resolution: {integrity: sha512-ZKZ/F8US7JR92J4DMct6cLW/Y66o2K576+zjlEN/MevH70bFIsB10wkZEQPLzl2oNh2SMGy55xpJ9JoBRl5DOA==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@cbor-extract/cbor-extract-darwin-x64@2.2.2':
+    resolution: {integrity: sha512-32b1mgc+P61Js+KW9VZv/c+xRw5EfmOcPx990JbCBSkYJFY0l25VinvyyWfl+3KjibQmAcYwmyzKF9J4DyKP/Q==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@cbor-extract/cbor-extract-linux-arm64@2.2.2':
+    resolution: {integrity: sha512-wfqgzqCAy/Vn8i6WVIh7qZd0DdBFaWBjPdB6ma+Wihcjv0gHqD/mw3ouVv7kbbUNrab6dKEx/w3xQZEdeXIlzg==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@cbor-extract/cbor-extract-linux-arm@2.2.2':
+    resolution: {integrity: sha512-tNg0za41TpQfkhWjptD+0gSD2fggMiDCSacuIeELyb2xZhr7PrhPe5h66Jc67B/5dmpIhI2QOUtv4SBsricyYQ==}
+    cpu: [arm]
+    os: [linux]
+
+  '@cbor-extract/cbor-extract-linux-x64@2.2.2':
+    resolution: {integrity: sha512-rpiLnVEsqtPJ+mXTdx1rfz4RtUGYIUg2rUAZgd1KjiC1SehYUSkJN7Yh+aVfSjvCGtVP0/bfkQkXpPXKbmSUaA==}
+    cpu: [x64]
+    os: [linux]
+
+  '@cbor-extract/cbor-extract-win32-x64@2.2.2':
+    resolution: {integrity: sha512-dI+9P7cfWxkTQ+oE+7Aa6onEn92PHgfWXZivjNheCRmTBDBf2fx6RyTi0cmgpYLnD1KLZK9ZYrMxaPZ4oiXhGA==}
+    cpu: [x64]
+    os: [win32]
 
   '@colors/colors@1.5.0':
     resolution: {integrity: sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==}
@@ -1404,6 +1440,12 @@ packages:
   '@tokenizer/token@0.3.0':
     resolution: {integrity: sha512-OvjF+z51L3ov0OyAU0duzsYuvO01PH7x4t6DJx+guahgTnBHkhJdG7soQeTSFLWN3efnHyibZ4Z8l2EuWwJN3A==}
 
+  '@transmute/cose@0.3.0':
+    resolution: {integrity: sha512-ZO9xdviadR3eEoSmZjqgV2iwHh6++b+FYT+H6h8dEPWF4wSygSX/n5A8ijmXWE5aYBOynDqHlWL+u0yauZ6vUg==}
+
+  '@transmute/rfc9162@0.0.5':
+    resolution: {integrity: sha512-cWeUMvx2qdzJUomiKFs2LZo2ojkOt2Qjqh+3FEPQUIpVOyU/hZwo1nr+dx/p3ETA47lBRUCRFCJI+NtgKB2KAQ==}
+
   '@trust/keyto@1.0.1':
     resolution: {integrity: sha512-OXTmKkrnkwktCX86XA7eWs1TQ6u64enm0syzAfNhjigbuGLy5aLhbhRYWtjt4zzdG/irWudluheRZ9Ic9pCwsA==}
 
@@ -2006,6 +2048,17 @@ packages:
 
   casbin@5.50.0:
     resolution: {integrity: sha512-ikARwU4ln2/3SzyG8cxFwjXgHhjmieapt62LwaeKZ0VDsqZ2meq3BCaJuW2Ept0cVx3C4j+1C2G9Rh6e/Fl+mQ==}
+
+  cbor-extract@2.2.2:
+    resolution: {integrity: sha512-hlSxxI9XO2yQfe9g6msd3g4xCfDqK5T5P0fRMLuaLHhxn4ViPrm+a+MUfhrvH2W962RGxcBwEGzLQyjbDG1gng==}
+    hasBin: true
+
+  cbor-web@9.0.2:
+    resolution: {integrity: sha512-N6gU2GsJS8RR5gy1d9wQcSPgn9FGJFY7KNvdDRlwHfz6kCxrQr2TDnrjXHmr6TFSl6Fd0FC4zRnityEldjRGvQ==}
+    engines: {node: '>=16'}
+
+  cbor-x@1.6.4:
+    resolution: {integrity: sha512-UGKHjp6RHC6QuZ2yy5LCKm7MojM4716DwoSaqwQpaH4DvZvbBTGcoDNTiG9Y2lByXZYFEs9WRkS5tLl96IrF1Q==}
 
   chalk@4.1.2:
     resolution: {integrity: sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==}
@@ -3391,6 +3444,10 @@ packages:
       encoding:
         optional: true
 
+  node-gyp-build-optional-packages@5.1.1:
+    resolution: {integrity: sha512-+P72GAjVAbTxjjwUmwjVrqrdZROD4nf8KgpBoDxqXXTiYZZt/ud60dE5yvCSr9lRO8e8yv6kgJIC0K0PfZFVQw==}
+    hasBin: true
+
   node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
 
@@ -4715,6 +4772,24 @@ snapshots:
     dependencies:
       jsep: 0.3.5
 
+  '@cbor-extract/cbor-extract-darwin-arm64@2.2.2':
+    optional: true
+
+  '@cbor-extract/cbor-extract-darwin-x64@2.2.2':
+    optional: true
+
+  '@cbor-extract/cbor-extract-linux-arm64@2.2.2':
+    optional: true
+
+  '@cbor-extract/cbor-extract-linux-arm@2.2.2':
+    optional: true
+
+  '@cbor-extract/cbor-extract-linux-x64@2.2.2':
+    optional: true
+
+  '@cbor-extract/cbor-extract-win32-x64@2.2.2':
+    optional: true
+
   '@colors/colors@1.5.0':
     optional: true
 
@@ -5881,11 +5956,11 @@ snapshots:
       - supports-color
       - typescript
 
-  '@sphereon/oid4vci-issuer@0.20.1(@noble/hashes@1.8.0)(typescript@6.0.3)':
+  '@sphereon/oid4vci-issuer@0.20.1(@noble/hashes@2.2.0)(typescript@6.0.3)':
     dependencies:
       '@sphereon/oid4vc-common': 0.20.1(typescript@6.0.3)
       '@sphereon/oid4vci-common': 0.20.1(typescript@6.0.3)
-      '@sphereon/ssi-express-support': 0.34.1-next.3(@noble/hashes@1.8.0)
+      '@sphereon/ssi-express-support': 0.34.1-next.3(@noble/hashes@2.2.0)
       '@sphereon/ssi-types': 0.36.1-next.159(typescript@6.0.3)
       short-uuid: 4.2.2
       uuid: 9.0.1
@@ -5915,7 +5990,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@sphereon/ssi-express-support@0.34.1-next.3(@noble/hashes@1.8.0)':
+  '@sphereon/ssi-express-support@0.34.1-next.3(@noble/hashes@2.2.0)':
     dependencies:
       '@sphereon/ssi-types': 0.34.1-next.3
       body-parser: 1.20.5
@@ -5932,7 +6007,7 @@ snapshots:
       qs: 6.15.2
       uint8arrays: 3.1.1
     optionalDependencies:
-      '@noble/hashes': 1.8.0
+      '@noble/hashes': 2.2.0
     transitivePeerDependencies:
       - supports-color
 
@@ -6204,6 +6279,15 @@ snapshots:
       - supports-color
 
   '@tokenizer/token@0.3.0': {}
+
+  '@transmute/cose@0.3.0':
+    dependencies:
+      '@peculiar/x509': 1.14.3
+      '@transmute/rfc9162': 0.0.5
+      cbor-web: 9.0.2
+      jose: 4.15.9
+
+  '@transmute/rfc9162@0.0.5': {}
 
   '@trust/keyto@1.0.1':
     dependencies:
@@ -6881,6 +6965,24 @@ snapshots:
       buffer: 6.0.3
       csv-parse: 5.6.0
       minimatch: 10.2.5
+
+  cbor-extract@2.2.2:
+    dependencies:
+      node-gyp-build-optional-packages: 5.1.1
+    optionalDependencies:
+      '@cbor-extract/cbor-extract-darwin-arm64': 2.2.2
+      '@cbor-extract/cbor-extract-darwin-x64': 2.2.2
+      '@cbor-extract/cbor-extract-linux-arm': 2.2.2
+      '@cbor-extract/cbor-extract-linux-arm64': 2.2.2
+      '@cbor-extract/cbor-extract-linux-x64': 2.2.2
+      '@cbor-extract/cbor-extract-win32-x64': 2.2.2
+    optional: true
+
+  cbor-web@9.0.2: {}
+
+  cbor-x@1.6.4:
+    optionalDependencies:
+      cbor-extract: 2.2.2
 
   chalk@4.1.2:
     dependencies:
@@ -8508,6 +8610,11 @@ snapshots:
   node-fetch@2.7.0:
     dependencies:
       whatwg-url: 5.0.0
+
+  node-gyp-build-optional-packages@5.1.1:
+    dependencies:
+      detect-libc: 2.1.2
+    optional: true
 
   node-int64@0.4.0: {}
 

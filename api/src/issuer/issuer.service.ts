@@ -15,6 +15,7 @@ import type { Response } from 'express';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
+import { encode as cborEncode } from 'cbor-x';
 
 // ---------------------------------------------------------------------------
 // OID4VCI Issuer — Pre-Authorized Code Flow
@@ -66,6 +67,7 @@ export class IssuerService implements OnModuleInit {
   private signingKeyPem: string;
   private baseUrl: string;
   private publicJwk: object;   // issuer public key for JWKS endpoint
+  private mdocSchema?: any;    // loaded from catalog/credential-schema-mdoc.json
 
   constructor(
     private readonly config: ConfigService,
@@ -85,6 +87,16 @@ export class IssuerService implements OnModuleInit {
       ),
     );
     this.signingKeyPem = fs.readFileSync(keyPath, 'utf8');
+
+    // Load mDoc schema from catalog if available
+    try {
+      const schemaPath = path.resolve('catalog/credential-schema-mdoc.json');
+      const schemaRaw = fs.readFileSync(schemaPath, 'utf8');
+      this.mdocSchema = JSON.parse(schemaRaw);
+      this.logger.log('Loaded mDoc schema from catalog/credential-schema-mdoc.json');
+    } catch (e) {
+      this.logger.warn('mDoc schema not found or unreadable at catalog/credential-schema-mdoc.json');
+    }
 
     // Derive and cache the public JWK for JWKS endpoint
     const privKey = crypto.createPrivateKey(this.signingKeyPem);
@@ -380,7 +392,14 @@ export class IssuerService implements OnModuleInit {
     const grant = await this.grantService.findOne(tokenState.grantId);
 
     // Build and sign the EAA SD-JWT VC
-    const credential = this.issueEaaCredential(grant, tokenState.pidSubject, proofHeader.jwk);
+    const credentialSdJwt = this.issueEaaCredential(
+      grant,
+      tokenState.pidSubject,
+      proofHeader.jwk,
+    );
+
+    // Build the EAA mDoc (MSO_mdoc) with the same schema
+    const credentialMdoc = this.issueEaaMdoc(grant, tokenState.pidSubject);
 
     // Activate grant
     const credentialId = crypto.randomUUID();
@@ -397,9 +416,16 @@ export class IssuerService implements OnModuleInit {
       credentials: [
         {
           format: 'dc+sd-jwt',
-          credential,
-        }
-      ]
+          credential: credentialSdJwt,
+        },
+        {
+          format: 'mso_mdoc',
+          // Per OID4VCI, mso_mdoc credential is a base64url-encoded COSE_Sign1/CBOR.
+          // Here we return a placeholder-encoded structure that will be replaced by
+          // a proper COSE/CBOR signing implementation in a follow-up step.
+          credential: credentialMdoc,
+        },
+      ],
     };
   }
 
@@ -447,6 +473,55 @@ export class IssuerService implements OnModuleInit {
 
     // SD-JWT: issuer-jwt~disc1~disc2~  (trailing ~ = no KB-JWT at issuance time)
     return [issuerJwt, ...disclosures.map(d => d.encoded), ''].join('~');
+  }
+
+  // ── Build mDoc (MSO_mdoc) placeholder ─────────────────────────────────────
+  // Mirrors the SD-JWT claims into an mDoc-like structure for offline checks.
+  // NOTE: This is a placeholder returning base64url(JSON). In the next step we will
+  // construct a real ISO 23220-5/18013-5 MSO_mdoc object and sign it (COSE_Sign1),
+  // using an mDoc/COSE library. The schema is kept stable so client integration
+  // can proceed meanwhile.
+  private issueEaaMdoc(
+    grant: any,
+    pidSubject: string,
+  ): string {
+    const nowMs = Date.now();
+
+    // mDoc schema-driven values
+    const schema = this.mdocSchema ?? {};
+    const doctype: string = schema.doctype || 'urn:eudi:eaa:infrastructure:access:1';
+    const ns: string = schema.claims ? Object.keys(schema.claims)[0] : 'urn:eudi:eaa:infrastructure:access:namespace:1';
+
+    const validFrom = new Date(nowMs).toISOString();
+    const validUntil = new Date(nowMs + 365 * 24 * 3600 * 1000).toISOString();
+
+    // Build IssuerSigned nameSpaces per ISO 23220-5 style
+    const nameSpaces = {
+      [ns]: {
+        granted_resource: grant.resourceId,
+        grant_id: grant.id,
+        valid_from: validFrom,
+        valid_until: validUntil,
+      },
+    } as Record<string, any>;
+
+    const issuerSigned = {
+      docType: doctype,
+      issuer: this.baseUrl,
+      validityInfo: {
+        signed: validFrom,
+        validFrom,
+        validUntil,
+      },
+      nameSpaces,
+      // Optional subject binding for traceability in demo scenarios
+      subject: pidSubject,
+    };
+
+    // For now, return unsigned CBOR wrapped as base64url to avoid external COSE deps.
+    // Wallets that can ingest raw IssuerSigned CBOR can still parse fields.
+    const cborPayload = cborEncode(issuerSigned);
+    return Buffer.from(cborPayload).toString('base64url');
   }
 
   // ── Issuer metadata (/.well-known/openid-credential-issuer) ───────────────
@@ -505,6 +580,28 @@ export class IssuerService implements OnModuleInit {
           claims: {
             granted_resource: { display: [{ name: 'Granted Resource', locale: 'en-US' }] },
             issued_to:        { display: [{ name: 'Issued To',        locale: 'en-US' }] },
+          },
+        },
+        // Also advertise an mDoc variant of the same credential
+        [`${EAA_VCT}#mso_mdoc`]: {
+          format: 'mso_mdoc',
+          doctype: (this.mdocSchema && this.mdocSchema.doctype) || 'urn:eudi:eaa:infrastructure:access:1',
+          scope: 'InfrastructureAccessEAA',
+          cryptographic_binding_methods_supported: ['jwk'],
+          credential_signing_alg_values_supported: ['ES256'],
+          proof_types_supported: {
+            jwt: { proof_signing_alg_values_supported: ['ES256'] },
+          },
+          display: (this.mdocSchema && this.mdocSchema.display) || [
+            { name: 'Infrastructure Access Attestation (mDoc)', locale: 'en-US' },
+          ],
+          claims: (this.mdocSchema && this.mdocSchema.claims) || {
+            'urn:eudi:eaa:infrastructure:access:namespace:1': {
+              granted_resource: { mandatory: true, value_type: 'string', display: [{ name: 'Granted Resource', locale: 'en-US' }] },
+              grant_id:        { mandatory: true, value_type: 'string', display: [{ name: 'Grant ID',        locale: 'en-US' }] },
+              valid_from:      { mandatory: true, value_type: 'string', display: [{ name: 'Valid From',      locale: 'en-US' }] },
+              valid_until:     { mandatory: true, value_type: 'string', display: [{ name: 'Valid Until',     locale: 'en-US' }] },
+            },
           },
         },
       },
