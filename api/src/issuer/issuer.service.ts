@@ -453,7 +453,7 @@ export class IssuerService implements OnModuleInit {
     }
 
     if (issueMdoc) {
-      const mdoc = this.issueEaaMdoc(grant, tokenState.pidSubject);
+      const mdoc = this.issueEaaMdoc(grant, tokenState.pidSubject, proofHeader.jwk);
       credentials.push({ format: 'mso_mdoc', credential: mdoc });
       tokenState.issuedConfigurations?.add(`${EAA_VCT}:mso_mdoc`);
     }
@@ -535,6 +535,7 @@ export class IssuerService implements OnModuleInit {
   private issueEaaMdoc(
     grant: any,
     pidSubject: string,
+    walletJwk: any,
   ): string {
     const nowMs = Date.now();
 
@@ -574,15 +575,40 @@ export class IssuerService implements OnModuleInit {
       validUntil: validUntilIso,
     };
 
+    // Build deviceKey (COSE_Key) from wallet JWK (expecting EC P-256 with x/y)
+    let deviceKey: Map<any, any> | undefined;
+    try {
+      const kty = walletJwk?.kty;
+      const crv = walletJwk?.crv;
+      const xB64 = walletJwk?.x;
+      const yB64 = walletJwk?.y;
+      if (kty === 'EC' && (crv === 'P-256' || crv === 'secp256r1') && xB64 && yB64) {
+        // COSE_Key labels: 1=kty(2=EC2), -1=crv(1=P-256), -2=x, -3=y
+        deviceKey = new Map<any, any>();
+        deviceKey.set(1, 2); // kty: EC2
+        deviceKey.set(-1, 1); // crv: P-256
+        deviceKey.set(-2, Buffer.from(xB64, 'base64url'));
+        deviceKey.set(-3, Buffer.from(yB64, 'base64url'));
+        if (walletJwk.kid) {
+          deviceKey.set(2, Buffer.from(String(walletJwk.kid))); // kid as bstr if present
+        }
+      }
+    } catch { /* ignore, will validate below */ }
+
     const mso = {
-      version: 1,
+      version: '1.0',
       digestAlgorithm: 'SHA-256',
       docType: doctype,
       validityInfo,
       valueDigests,
+      deviceKey: deviceKey ?? undefined,
       // Optional subject binding for demo visibility only (non-standard in MSO)
       // subject: pidSubject,
     } as Record<string, unknown>;
+
+    if (!mso['deviceKey']) {
+      this.logger.warn('MSO deviceKey could not be derived from wallet JWK — expected EC P-256 with x/y.');
+    }
 
     const msoCbor = cborEncode(mso);
 
@@ -620,10 +646,12 @@ export class IssuerService implements OnModuleInit {
 
     // Assemble IssuerSigned with required keys: nameSpaces (camelCase) + issuerAuth
     const issuerSigned = {
-      docType: doctype,
+      // Per ISO 18013-5 §9.1.2.5 only nameSpaces and issuerAuth are present
       nameSpaces,
       issuerAuth: coseSign1Tagged,
     } as Record<string, unknown>;
+
+    this.logger.debug(`mDoc IssuerSigned ready — keys=[${Object.keys(issuerSigned).join(',')}] MSO.version=${(mso as any).version} deviceKey=${mso['deviceKey'] ? 'present' : 'absent'}`);
 
     const issuerSignedCbor = cborEncode(issuerSigned);
     return Buffer.from(issuerSignedCbor).toString('base64url');
