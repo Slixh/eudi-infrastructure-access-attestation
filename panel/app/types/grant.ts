@@ -16,9 +16,9 @@ export interface GrantInviteData {
 }
 
 export interface CreateGrantDto {
-  label: string
-  resourceId: string
-  pidFirstName?:  string
-  pidFamilyName?: string
-  pidBirthdate?:  string
+  label:             string
+  resourceEntityIds: string[]
+  pidFirstName?:     string
+  pidFamilyName?:    string
+  pidBirthdate?:     string
 }

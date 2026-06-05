@@ -6,33 +6,68 @@ datasource db {
   provider = "sqlite"
 }
 
-// A Grant represents permission for one person (identified by PID) to access one resource
+// ── Location ──────────────────────────────────────────────────────────────────
+// A physical site (building, campus, …) that contains resources.
+model Location {
+  id         String     @id @default(cuid())
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  name       String              // e.g. "TU Berlin – Hauptgebäude"
+  street     String              // Straße + Hausnummer
+  postalCode String
+  city       String
+  country    String   @default("DE")
+  notes      String?             // optional free-text remarks
+
+  resources  Resource[]
+}
+
+// ── Resource ──────────────────────────────────────────────────────────────────
+// A lockable asset (door, gate, cabinet, …) at a Location.
+model Resource {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  name        String              // human label, e.g. "Serverraum EG"
+  identifier  String   @unique    // machine ID used in EAA claim, e.g. "door:building-a:eg:server"
+  description String?
+
+  locationId  String
+  location    Location @relation(fields: [locationId], references: [id])
+
+  grants      Grant[]  // many-to-many (implicit join table _GrantToResource)
+}
+
+// ── Grant ─────────────────────────────────────────────────────────────────────
+// Permission for one person (identified by PID) to access one or more resources.
 model Grant {
   id          String   @id @default(cuid())
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Human-readable label set by the admin (e.g. "Front door – John Doe")
+  // Human-readable label set by the admin
   label       String
 
-  // The resource/lock this grant applies to
+  // Serialised resource identifiers — used in the EAA credential claim.
+  // Auto-populated from the linked Resource entities (comma-separated).
   resourceId  String
 
-  // PID subject claim bound after first successful issuance
-  pidSubject  String?
+  // Linked Resource entities (many-to-many)
+  resources   Resource[]
 
-  // Optional PID binding — set by admin to restrict issuance to one specific person.
-  // If any of these fields are set, the presented PID must match (case-insensitive
-  // for names, exact for birthdate in ISO-8601 format e.g. "1990-01-15").
+  // PID subject claim bound after first successful issuance
+  pidSubject    String?
+
+  // Optional PID binding — restricts issuance to one specific person.
   pidFirstName  String?
   pidFamilyName String?
   pidBirthdate  String?
 
   // Invite token is a signed JWT the wallet scans (QR or deep-link)
-  // Once redeemed (VP received + EAA issued), status becomes ACTIVE
   status      GrantStatus @default(PENDING)
-
-  inviteToken String?  @unique
+  inviteToken String?     @unique
 
   // Credential ID of the issued EAA, used for revocation
   credentialId String?
@@ -46,6 +81,7 @@ enum GrantStatus {
   REVOKED
 }
 
+// ── AccessLog ─────────────────────────────────────────────────────────────────
 // Append-only log of every access attempt
 model AccessLog {
   id         String   @id @default(cuid())

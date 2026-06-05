@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Delete, Param, Body, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, Query, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { GrantService } from './grant.service';
 import { CreateGrantDto } from './dto/create-grant.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @ApiTags('grants')
 @Controller('grants')
@@ -15,9 +16,9 @@ export class GrantController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List all grants (admin)' })
-  findAll() {
-    return this.grantService.findAll();
+  @ApiOperation({ summary: 'List all grants (admin). Add ?page=1&limit=20 for pagination.' })
+  findAll(@Query() pagination: PaginationDto) {
+    return this.grantService.findAll(pagination);
   }
 
   @Get(':id')

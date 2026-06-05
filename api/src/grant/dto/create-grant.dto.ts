@@ -1,16 +1,22 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, Matches } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, Matches, IsArray, ArrayMinSize } from 'class-validator';
 
 export class CreateGrantDto {
-  @ApiProperty({ example: 'Front door – John Doe' })
+  @ApiProperty({ example: 'Berlin – Serverraum EG' })
   @IsString()
   @IsNotEmpty()
   label: string;
 
-  @ApiProperty({ example: 'lock-001' })
-  @IsString()
-  @IsNotEmpty()
-  resourceId: string;
+  @ApiProperty({
+    example: ['clx123abc', 'clx456def'],
+    description: 'IDs of Resource entities to grant access to (at least one required)',
+    type: [String],
+  })
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  resourceEntityIds: string[];
 
   // ── Optional PID binding ──────────────────────────────────────────────────
   // If any field is provided, the presented PID must match during OID4VP.

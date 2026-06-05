@@ -14,7 +14,7 @@ const modalOpen = ref(false)
     </div>
 
     <UCard>
-      <GrantsGrantTable :grants="grants ?? []" />
+      <GrantsGrantTable :grants="grants ?? []" @revoked="refresh" />
     </UCard>
 
     <GrantsCreateGrantModal v-model:open="modalOpen" @created="refresh" />

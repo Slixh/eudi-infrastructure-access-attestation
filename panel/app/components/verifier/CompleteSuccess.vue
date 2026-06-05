@@ -15,9 +15,27 @@ defineProps<{ offerUri: string }>()
 
     <UButton :to="offerUri" size="lg" block>In EUDI Wallet öffnen</UButton>
 
-    <p class="text-sm text-gray-400 mt-4">
+    <p class="text-sm text-gray-400 mt-4 mb-6">
       Gleiches Gerät? Button tippen.<br>
       Anderes Gerät? QR-Code scannen.
     </p>
+
+    <UCollapsible class="text-left">
+      <UButton
+        variant="ghost"
+        color="neutral"
+        size="sm"
+        trailing-icon="heroicons:chevron-down"
+        class="w-full justify-between text-gray-400"
+        :ui="{ trailingIcon: 'transition-transform ui-open:rotate-180' }"
+      >
+        Credential-Offer-URI anzeigen
+      </UButton>
+      <template #content>
+        <div class="mt-2 rounded-lg bg-gray-100 dark:bg-gray-800 p-3">
+          <p class="font-mono text-xs text-gray-600 dark:text-gray-300 break-all">{{ offerUri }}</p>
+        </div>
+      </template>
+    </UCollapsible>
   </div>
 </template>

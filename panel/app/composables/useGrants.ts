@@ -8,10 +8,9 @@ export const useGrants = () => {
   })
 
   const createGrant = async (dto: CreateGrantDto): Promise<Grant> => {
-    // Strip empty optional fields before sending
-    const body: Record<string, string> = {
-      label:      dto.label,
-      resourceId: dto.resourceId,
+    const body: Record<string, unknown> = {
+      label:             dto.label,
+      resourceEntityIds: dto.resourceEntityIds,
     }
     if (dto.pidFirstName?.trim())  body.pidFirstName  = dto.pidFirstName.trim()
     if (dto.pidFamilyName?.trim()) body.pidFamilyName = dto.pidFamilyName.trim()
@@ -24,5 +23,8 @@ export const useGrants = () => {
     })
   }
 
-  return { grants, refresh, createGrant }
+  const revokeGrant = (id: string): Promise<Grant> =>
+    $fetch<Grant>(`/grants/${id}/revoke`, { baseURL: config.public.apiBase, method: 'DELETE' })
+
+  return { grants, refresh, createGrant, revokeGrant }
 }
