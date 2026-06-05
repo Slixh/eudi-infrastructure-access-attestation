@@ -43,6 +43,7 @@ interface TokenState {
   pidSubject: string;
   cNonce: string;
   createdAt: Date;
+  issuedConfigurations?: Set<string>; // track which credential_configuration_ids already issued for this token
 }
 
 interface AuthCodeState {
@@ -256,6 +257,7 @@ export class IssuerService implements OnModuleInit {
         pidSubject: offerState.pidSubject,
         cNonce,
         createdAt: new Date(),
+        issuedConfigurations: new Set<string>(),
       });
 
       this.logger.log(`Token issued for grant ${offerState.grantId}`);
@@ -322,6 +324,7 @@ export class IssuerService implements OnModuleInit {
         pidSubject: 'N/A',
         cNonce,
         createdAt: new Date(),
+        issuedConfigurations: new Set<string>(),
       });
 
       // One-time use — delete auth code
@@ -430,42 +433,51 @@ export class IssuerService implements OnModuleInit {
 
     const grant = await this.grantService.findOne(tokenState.grantId);
 
-    // Build and sign the EAA SD-JWT VC
-    const credentialSdJwt = this.issueEaaCredential(
-      grant,
-      tokenState.pidSubject,
-      proofHeader.jwk,
-    );
+    // Wallet may request a specific configuration id
+    const requestedConfigId = (body['credential_configuration_id'] as string | undefined)?.trim();
 
-    // Build the EAA mDoc (MSO_mdoc) with the same schema
-    const credentialMdoc = this.issueEaaMdoc(grant, tokenState.pidSubject);
+    // Determine which credentials to issue
+    const issueSdJwt = !requestedConfigId || requestedConfigId === EAA_VCT;
+    const issueMdoc  = !requestedConfigId || requestedConfigId === `${EAA_VCT}:mso_mdoc`;
 
-    // Activate grant
+    const credentials: Array<{ format: string; credential: string }> = [];
+
+    if (issueSdJwt) {
+      const sd = this.issueEaaCredential(
+        grant,
+        tokenState.pidSubject,
+        proofHeader.jwk,
+      );
+      credentials.push({ format: 'dc+sd-jwt', credential: sd });
+      tokenState.issuedConfigurations?.add(EAA_VCT);
+    }
+
+    if (issueMdoc) {
+      const mdoc = this.issueEaaMdoc(grant, tokenState.pidSubject);
+      credentials.push({ format: 'mso_mdoc', credential: mdoc });
+      tokenState.issuedConfigurations?.add(`${EAA_VCT}:mso_mdoc`);
+    }
+
+    if (credentials.length === 0) {
+      // Unknown configuration requested
+      throw new HttpException(
+        { error: 'invalid_request', error_description: `Unknown credential_configuration_id: ${requestedConfigId}` },
+        400,
+      );
+    }
+
+    // Activate grant once (first issuance) — create a credentialId per session
     const credentialId = crypto.randomUUID();
     await this.grantService.activate(grant.id, tokenState.pidSubject, credentialId);
 
-    // One-time use — delete token
-    this.pendingTokens.delete(accessToken);
-
     this.logger.log(
-      `EAA issued — grant: ${grant.id}, resource: ${grant.resourceId}, subject: ${tokenState.pidSubject}`,
+      `EAA issued (${credentials.map(c => c.format).join(', ')}) — grant: ${grant.id}, resource: ${grant.resourceId}, subject: ${tokenState.pidSubject}`,
     );
 
-    return {
-      credentials: [
-       {
-         format: 'dc+sd-jwt',
-         credential: credentialSdJwt,
-       },
-        {
-          format: 'mso_mdoc',
-          // Per OID4VCI, mso_mdoc credential is a base64url-encoded COSE_Sign1/CBOR.
-          // Here we return a placeholder-encoded structure that will be replaced by
-          // a proper COSE/CBOR signing implementation in a follow-up step.
-          credential: credentialMdoc,
-        },
-      ],
-    };
+    // Keep token valid until TTL to allow multiple configurations to be fetched
+    // (no deletion here)
+
+    return { credentials };
   }
 
   // ── Build SD-JWT VC ────────────────────────────────────────────────────────
