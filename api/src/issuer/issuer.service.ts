@@ -547,27 +547,54 @@ export class IssuerService implements OnModuleInit {
     const validFromIso = new Date(nowMs).toISOString();
     const validUntilIso = new Date(nowMs + 365 * 24 * 3600 * 1000).toISOString();
 
-    // Build IssuerSigned.nameSpaces (camelCase per spec)
-    const nameSpaces: Record<string, Record<string, any>> = {
-      [ns]: {
-        granted_resource: grant.resourceId,
-        grant_id: grant.id,
-        valid_from: validFromIso,
-        valid_until: validUntilIso,
-      },
-    };
+    // Build IssuerSigned.nameSpaces as an array of Tag(24) IssuerSignedItemBytes per ISO 18013-5
+    // and construct MSO.valueDigests using integer digestIDs (uint) → bstr
+    // 1) Define elements in a stable order so digestID assignment is deterministic
+    const elements: Array<{ id: string; value: any }> = [
+      { id: 'granted_resource', value: grant.resourceId },
+      { id: 'grant_id',         value: grant.id },
+      { id: 'valid_from',       value: validFromIso },
+      { id: 'valid_until',      value: validUntilIso },
+    ];
 
-    // Construct Mobile Security Object (MSO) with value digests
-    const valueDigests: Record<string, Record<string, string>> = {};
-    for (const [namespace, elements] of Object.entries(nameSpaces)) {
-      const elementDigests: Record<string, string> = {};
-      for (const [elementIdentifier, elementValue] of Object.entries(elements)) {
-        const elemCbor = cborEncode(elementValue);
-        const digest = crypto.createHash('sha256').update(Buffer.from(elemCbor)).digest('base64url');
-        elementDigests[elementIdentifier] = digest;
+    // 2) Create IssuerSignedItem for each element, encode to bytes, wrap as Tag(24),
+    //    and compute SHA-256 digest over the raw payload bytes.
+    const issuerSignedItems: any[] = []; // array of Tag(24, <bytes>)
+    const valueDigests: Record<string, Record<string, Map<number, Buffer>>> = { [ns]: {} };
+
+    for (let i = 0; i < elements.length; i++) {
+      const { id: elementIdentifier, value: elementValue } = elements[i];
+      const digestID = i; // uint key as required by spec
+      const random = crypto.randomBytes(16); // 16-byte bstr
+
+      // IssuerSignedItem map
+      const item = {
+        digestID,          // uint
+        random,            // bstr
+        elementIdentifier, // tstr
+        elementValue,      // any
+      } as Record<string, unknown>;
+
+      // CBOR-encode IssuerSignedItem → payload bytes
+      const itemBytes: Uint8Array = cborEncode(item);
+
+      // Wrap payload as Tag(24) → IssuerSignedItemBytes (cbor-x Tag constructor is (value, tag))
+      const itemTagged = new Tag(itemBytes, 24);
+      issuerSignedItems.push(itemTagged);
+
+      // Compute SHA-256 digest over the payload bytes. Store as Buffer (CBOR bstr)
+      const digestBuf = crypto.createHash('sha256').update(Buffer.from(itemBytes)).digest();
+
+      if (!valueDigests[ns][elementIdentifier]) {
+        valueDigests[ns][elementIdentifier] = new Map<number, Buffer>();
       }
-      valueDigests[namespace] = elementDigests;
+      valueDigests[ns][elementIdentifier].set(digestID, digestBuf); // uint → bstr
     }
+
+    // 3) nameSpaces must be an array of IssuerSignedItemBytes under the namespace key
+    const nameSpaces: Record<string, any> = {
+      [ns]: issuerSignedItems,
+    };
 
     const validityInfo = {
       signed: validFromIso,
