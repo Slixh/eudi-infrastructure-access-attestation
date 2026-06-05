@@ -16,10 +16,13 @@ import type { Response } from 'express';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import { mdocCborEncode as cborEncode, MdocTag } from '../common/mdoc-cbor';
 
-// MdocTag replaces cbor-x Tag for semantic tagging (Tag 18 COSE_Sign1, Tag 24 IssuerSignedItemBytes, Tag 0 tdate)
-const Tag = MdocTag;
+type OwfMdocModule = typeof import('@owf/mdoc');
+type MdocContext = import('@owf/mdoc').MdocContext;
+
+const importOwfMdoc = new Function('specifier', 'return import(specifier)') as (
+  specifier: string,
+) => Promise<OwfMdocModule>;
 
 // ---------------------------------------------------------------------------
 // OID4VCI Issuer — Pre-Authorized Code Flow
@@ -95,21 +98,27 @@ export class IssuerService implements OnModuleInit {
     this.signingKeyPem = fs.readFileSync(keyPath, 'utf8');
 
     // Load issuer certificate for x5chain in mDoc issuerAuth (ISO 18013-5 §9.1.2.2).
-    // Priority: ISSUER_CERT_PATH → RP_ACCESS_CERT_PATH → key path with .crt extension
-    const certPath = path.resolve(
-      this.config.get(
-        'ISSUER_CERT_PATH',
-        this.config.get('RP_ACCESS_CERT_PATH', keyPath.replace(/\.key$/, '.crt')),
-      ),
-    );
-    try {
-      const certPem = fs.readFileSync(certPath, 'utf8');
-      // Strip PEM armor to get raw DER bytes
-      const b64 = certPem.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
-      this.issuerCertDer = Buffer.from(b64, 'base64');
-      this.logger.log(`Issuer certificate loaded from ${certPath} (${this.issuerCertDer.length} bytes DER)`);
-    } catch (e) {
-      this.logger.warn(`Issuer certificate not found at ${certPath} — x5chain will be omitted from mDoc issuerAuth (wallet may reject)`);
+    const certCandidates = [
+      this.config.get<string>('ISSUER_CERT_PATH'),
+      this.config.get<string>('RP_ACCESS_CERT_PATH'),
+      keyPath.replace(/\.key$/, '.crt'),
+      'certs/access-certificate.crt',
+    ].filter(Boolean) as string[];
+
+    for (const candidate of certCandidates) {
+      const certPath = path.resolve(candidate);
+      try {
+        const certPem = fs.readFileSync(certPath, 'utf8');
+        const b64 = certPem.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
+        this.issuerCertDer = Buffer.from(b64, 'base64');
+        this.logger.log(`Issuer certificate loaded from ${certPath} (${this.issuerCertDer.length} bytes DER)`);
+        break;
+      } catch {
+        // Try the next configured/default certificate path.
+      }
+    }
+    if (!this.issuerCertDer) {
+      this.logger.warn(`Issuer certificate not found in candidates [${certCandidates.join(', ')}] — mDoc issuance will fail`);
     }
 
     // Load mDoc schema from catalog if available
@@ -475,7 +484,7 @@ export class IssuerService implements OnModuleInit {
     }
 
     if (issueMdoc) {
-      const mdoc = this.issueEaaMdoc(grant, tokenState.pidSubject, proofHeader.jwk);
+      const mdoc = await this.issueEaaMdoc(grant, tokenState.pidSubject, proofHeader.jwk);
       credentials.push({ format: 'mso_mdoc', credential: mdoc });
       tokenState.issuedConfigurations?.add(`${EAA_VCT}:mso_mdoc`);
     }
@@ -548,166 +557,107 @@ export class IssuerService implements OnModuleInit {
     return [issuerJwt, ...disclosures.map(d => d.encoded), ''].join('~');
   }
 
-  // ── Build mDoc (mso_mdoc) — ISO 18013-5 compliant IssuerSigned with issuerAuth ─
-  // Returns base64url(CBOR(IssuerSigned)) where IssuerSigned contains:
-  // - nameSpaces (camelCase): { <namespace>: { <elementIdentifier>: <elementValue>, ... } }
-  // - issuerAuth: COSE_Sign1 over the Mobile Security Object (MSO)
-  // The MSO includes docType, validityInfo, digestAlgorithm, valueDigests for each
-  // data element present in nameSpaces. Signature uses ES256 (COSE alg -7).
-  private issueEaaMdoc(
+  // ── Build mDoc (mso_mdoc) with OWF mdoc-ts ────────────────────────────────
+  // Returns base64url(CBOR(IssuerSigned)) as expected by OID4VCI mso_mdoc.
+  private async issueEaaMdoc(
     grant: any,
     pidSubject: string,
     walletJwk: any,
-  ): string {
+  ): Promise<string> {
     const nowMs = Date.now();
 
-    // mDoc schema-driven values
     const schema = this.mdocSchema ?? {};
     const doctype: string = schema.doctype || 'urn:eudi:eaa:infrastructure:access:1';
     const ns: string = schema.claims ? Object.keys(schema.claims)[0] : 'urn:eudi:eaa:infrastructure:access:namespace:1';
 
-    const validFromIso = new Date(nowMs).toISOString();
-    const validUntilIso = new Date(nowMs + 365 * 24 * 3600 * 1000).toISOString();
+    const validFrom = new Date(nowMs);
+    const validUntil = new Date(nowMs + 365 * 24 * 3600 * 1000);
+    const privateJwk = this.getIssuerPrivateJwk();
+    const normalizedWalletJwk = this.normalizeEcJwk(walletJwk);
+    const { CoseKey, DeviceKey, Issuer, SignatureAlgorithm } = await importOwfMdoc('@owf/mdoc');
+    const ctx = this.createOwfMdocContext();
 
-    // Build IssuerSigned.nameSpaces as an array of Tag(24) IssuerSignedItemBytes per ISO 18013-5
-    // and construct MSO.valueDigests using integer digestIDs (uint) → bstr
-    // 1) Define elements in a stable order so digestID assignment is deterministic
-    const elements: Array<{ id: string; value: any }> = [
-      { id: 'granted_resource', value: grant.resourceId },
-      { id: 'grant_id',         value: grant.id },
-      { id: 'valid_from',       value: validFromIso },
-      { id: 'valid_until',      value: validUntilIso },
-    ];
+    const issuerSigned = await new Issuer(doctype, ctx)
+      .addIssuerNamespace(ns, {
+        granted_resource: grant.resourceId,
+        grant_id: grant.id,
+        valid_from: validFrom.toISOString(),
+        valid_until: validUntil.toISOString(),
+      })
+      .sign({
+        signingKey: CoseKey.fromJwk(privateJwk),
+        algorithm: SignatureAlgorithm.ES256,
+        digestAlgorithm: 'SHA-256',
+        validityInfo: {
+          signed: validFrom,
+          validFrom,
+          validUntil,
+        },
+        deviceKeyInfo: {
+          deviceKey: DeviceKey.fromJwk(normalizedWalletJwk),
+        },
+        certificates: this.issuerCertDer ? [this.issuerCertDer] : [],
+      });
 
-    // 2) Create IssuerSignedItem for each element, encode to bytes, wrap as Tag(24),
-    //    and compute SHA-256 digest over the raw payload bytes.
-    const issuerSignedItems: any[] = []; // array of Tag(24, <bytes>)
-    // Per ISO 18013-5, valueDigests[namespace] must be a map of uint digestID → bstr (raw digest)
-    const valueDigestsNs = new Map<number, Buffer>();
+    this.logger.debug(`mDoc IssuerSigned ready via OWF mdoc-ts — doctype=${doctype} namespace=${ns}`);
+    return issuerSigned.encodedForOid4Vci;
+  }
 
-    for (let i = 0; i < elements.length; i++) {
-      const { id: elementIdentifier, value: elementValue } = elements[i];
-      const digestID = i; // uint key as required by spec
-      const random = crypto.randomBytes(16); // 16-byte bstr
-
-      // IssuerSignedItem map
-      const item = {
-        digestID,          // uint
-        random,            // bstr
-        elementIdentifier, // tstr
-        elementValue,      // any
-      } as Record<string, unknown>;
-
-      // CBOR-encode IssuerSignedItem → payload bytes
-      const itemBytes: Uint8Array = cborEncode(item);
-
-      // Wrap payload as Tag(24) → IssuerSignedItemBytes (cbor-x Tag constructor is (value, tag))
-      const itemTagged = new Tag(itemBytes, 24);
-      issuerSignedItems.push(itemTagged);
-
-      // Compute SHA-256 digest over the payload bytes. Store as Buffer (CBOR bstr)
-      const digestBuf = crypto.createHash('sha256').update(Buffer.from(itemBytes)).digest();
-      // Insert directly by digestID (no elementIdentifier layer, no extra wrapping)
-      valueDigestsNs.set(digestID, digestBuf); // uint → bstr
-    }
-
-    // 3) nameSpaces must be an array of IssuerSignedItemBytes under the namespace key
-    const nameSpaces: Record<string, any> = {
-      [ns]: issuerSignedItems,
+  private createOwfMdocContext(): Pick<MdocContext, 'cose' | 'crypto'> {
+    return {
+      crypto: {
+        random: (length: number) => crypto.randomBytes(length),
+        digest: ({ digestAlgorithm, bytes }) => {
+          const algorithm = digestAlgorithm.toLowerCase().replace('-', '');
+          return crypto.createHash(algorithm).update(Buffer.from(bytes)).digest();
+        },
+        calculateEphemeralMacKey: () => {
+          throw new Error('Ephemeral MAC key calculation is not used during issuance');
+        },
+      },
+      cose: {
+        sign1: {
+          sign: ({ toBeSigned }) =>
+            crypto
+              .createSign('sha256')
+              .update(Buffer.from(toBeSigned))
+              .sign({ key: this.signingKeyPem, dsaEncoding: 'ieee-p1363' }),
+          verify: () => {
+            throw new Error('COSE verification is not used during issuance');
+          },
+        },
+        mac0: {
+          sign: () => {
+            throw new Error('COSE MAC0 signing is not used during issuance');
+          },
+          verify: () => {
+            throw new Error('COSE MAC0 verification is not used during issuance');
+          },
+        },
+      },
     };
+  }
 
-    // ISO 18013-5 §9.1.2.4: signed/validFrom/validUntil MUST be tdate (CBOR Tag 0)
-    const validityInfo = {
-      signed:     new Tag(validFromIso, 0),
-      validFrom:  new Tag(validFromIso, 0),
-      validUntil: new Tag(validUntilIso, 0),
-    };
-
-    // Build deviceKey (COSE_Key) from wallet JWK (expecting EC P-256 with x/y)
-    let deviceKey: Map<any, any> | undefined;
-    try {
-      const kty = walletJwk?.kty;
-      const crv = walletJwk?.crv;
-      const xB64 = walletJwk?.x;
-      const yB64 = walletJwk?.y;
-      if (kty === 'EC' && (crv === 'P-256' || crv === 'secp256r1') && xB64 && yB64) {
-        // COSE_Key labels: 1=kty(2=EC2), -1=crv(1=P-256), -2=x, -3=y
-        deviceKey = new Map<any, any>();
-        deviceKey.set(1, 2); // kty: EC2
-        deviceKey.set(-1, 1); // crv: P-256
-        deviceKey.set(-2, Buffer.from(xB64, 'base64url'));
-        deviceKey.set(-3, Buffer.from(yB64, 'base64url'));
-        if (walletJwk.kid) {
-          deviceKey.set(2, Buffer.from(String(walletJwk.kid))); // kid as bstr if present
-        }
-      }
-    } catch { /* ignore, will validate below */ }
-
-    if (!deviceKey) {
-      this.logger.warn('MSO deviceKey could not be derived from wallet JWK — expected EC P-256 with x/y.');
-    }
-
-    // ISO 18013-5 §9.1.2.4: deviceKey is nested inside a "deviceKeyInfo" map
-    const mso: Record<string, unknown> = {
-      version:          '1.0',
-      digestAlgorithm:  'SHA-256',
-      docType:          doctype,
-      validityInfo,
-      valueDigests:     { [ns]: valueDigestsNs },
-      deviceKeyInfo:    { deviceKey },
-    };
-
-    const msoCbor = cborEncode(mso);
-
-    // Build COSE_Sign1 over MSO (issuerAuth)
-    // ISO 18013-5 §9.1.2.2: protected header MUST include x5chain (label 33)
-    // with the DER-encoded issuer certificate chain so the wallet can verify
-    // the signature against a trusted root.
-    const protectedHeaderMap = new Map<any, any>();
-    protectedHeaderMap.set(1, -7); // alg: ES256 (-7)
-    protectedHeaderMap.set(4, Buffer.from('issuer-key-1')); // kid as bstr
-    if (this.issuerCertDer) {
-      // x5chain (33): single cert → bstr; chain → array of bstr
-      protectedHeaderMap.set(33, this.issuerCertDer);
-    }
-    const protectedBstr: Uint8Array = cborEncode(protectedHeaderMap);
-    const unprotected: Record<string, unknown> = {};
-
-    const sigStructure = [
-      'Signature1',
-      Buffer.from(protectedBstr as any),
-      new Uint8Array(0), // external_aad
-      Buffer.from(msoCbor as any),
-    ];
-    const toBeSigned = cborEncode(sigStructure);
-
-    const signature = crypto
-      .createSign('sha256')
-      .update(Buffer.from(toBeSigned as any))
-      .sign({ key: this.signingKeyPem, dsaEncoding: 'ieee-p1363' }); // raw R||S
-
-    const coseSign1 = [
-      Buffer.from(protectedBstr as any),
-      unprotected,
-      Buffer.from(msoCbor as any),
-      Buffer.from(signature as any),
-    ];
-
-    // Wrap COSE_Sign1 with CBOR semantic tag 18 as required by many parsers
-    // cbor-x Tag constructor is (value, tag)
-    const coseSign1Tagged = new Tag(coseSign1, 18);
-
-    // Assemble IssuerSigned with required keys: nameSpaces (camelCase) + issuerAuth
-    const issuerSigned = {
-      // Per ISO 18013-5 §9.1.2.5 only nameSpaces and issuerAuth are present
-      nameSpaces,
-      issuerAuth: coseSign1Tagged,
+  private getIssuerPrivateJwk(): Record<string, unknown> {
+    const privateKey = crypto.createPrivateKey(this.signingKeyPem);
+    return {
+      ...privateKey.export({ format: 'jwk' }),
+      kid: 'issuer-key-1',
+      alg: 'ES256',
+      keyOps: ['sign'],
     } as Record<string, unknown>;
+  }
 
-    this.logger.debug(`mDoc IssuerSigned ready — keys=[${Object.keys(issuerSigned).join(',')}] MSO.version=${(mso as any).version} deviceKey=${mso['deviceKey'] ? 'present' : 'absent'}`);
+  private normalizeEcJwk(jwk: any): Record<string, unknown> {
+    if (!jwk || jwk.kty !== 'EC' || !jwk.x || !jwk.y) {
+      throw new BadRequestException('Proof JWT jwk must be an EC public key with x/y coordinates for mDoc deviceKey');
+    }
 
-    const issuerSignedCbor = cborEncode(issuerSigned);
-    return Buffer.from(issuerSignedCbor).toString('base64url');
+    return {
+      ...jwk,
+      crv: jwk.crv === 'secp256r1' ? 'P-256' : (jwk.crv ?? 'P-256'),
+      alg: jwk.alg ?? 'ES256',
+    };
   }
 
   // ── Issuer metadata (/.well-known/openid-credential-issuer) ───────────────

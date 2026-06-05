@@ -29,6 +29,9 @@ importers:
       '@owf/eudi-lote':
         specifier: ^0.2.0
         version: 0.2.0
+      '@owf/mdoc':
+        specifier: 0.6.0
+        version: 0.6.0
       '@prisma/adapter-better-sqlite3':
         specifier: ^7.8.0
         version: 7.8.0
@@ -1023,6 +1026,9 @@ packages:
 
   '@owf/identity-common@0.2.0':
     resolution: {integrity: sha512-liOcJpoUxKkvAOko93VvrpC0w9ft+/D6lalrLoXrgrdd3/q3kGx2IeQ8fcrspw+F3IURfcvdDEH/RwEMx0DKMg==}
+
+  '@owf/mdoc@0.6.0':
+    resolution: {integrity: sha512-vJL62hzjcSweBjDD9eRUH1RIMSzZUtHKjVFMMo50oHPLO9ZVZbQABFe9IFoa5AgXkwfv27HjnFv/eRbkOrlsUA==}
 
   '@peculiar/asn1-cms@2.7.0':
     resolution: {integrity: sha512-hew63shtzzvBcSHbhm+cyAmKe6AIfinT9hzEqSPjDC6opTTMKmTkQ0gHuN2KsWlvqiKw1S/fS94fhag/FJkioQ==}
@@ -4535,6 +4541,12 @@ packages:
   zeptomatch@2.1.0:
     resolution: {integrity: sha512-KiGErG2J0G82LSpniV0CtIzjlJ10E04j02VOudJsPyPwNZgGnRKQy7I1R7GMyg/QswnE4l7ohSGrQbQbjXPPDA==}
 
+  zod-validation-error@5.0.0:
+    resolution: {integrity: sha512-hmk+pkyKq7Q71PiWVSDUc3VfpzpvcRHZ3QPw9yEMVvmtCekaMeOHnbr3WbxfrgEnQTv6haGP4cmv0Ojmihzsxw==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      zod: ^3.25.0 || ^4.0.0
+
   zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
@@ -5540,6 +5552,12 @@ snapshots:
       zod: 4.4.3
 
   '@owf/identity-common@0.2.0': {}
+
+  '@owf/mdoc@0.6.0':
+    dependencies:
+      cbor-x: 1.6.4
+      zod: 4.4.3
+      zod-validation-error: 5.0.0(zod@4.4.3)
 
   '@peculiar/asn1-cms@2.7.0':
     dependencies:
@@ -9699,5 +9717,9 @@ snapshots:
     dependencies:
       grammex: 3.1.12
       graphmatch: 1.1.1
+
+  zod-validation-error@5.0.0(zod@4.4.3):
+    dependencies:
+      zod: 4.4.3
 
   zod@4.4.3: {}
