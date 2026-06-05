@@ -624,20 +624,19 @@ export class IssuerService implements OnModuleInit {
       }
     } catch { /* ignore, will validate below */ }
 
-    const mso = {
-      version: '1.0',
-      digestAlgorithm: 'SHA-256',
-      docType: doctype,
-      validityInfo,
-      valueDigests: { [ns]: valueDigestsNs },
-      deviceKey: deviceKey ?? undefined,
-      // Optional subject binding for demo visibility only (non-standard in MSO)
-      // subject: pidSubject,
-    } as Record<string, unknown>;
-
-    if (!mso['deviceKey']) {
+    if (!deviceKey) {
       this.logger.warn('MSO deviceKey could not be derived from wallet JWK — expected EC P-256 with x/y.');
     }
+
+    // ISO 18013-5 §9.1.2.4: deviceKey is nested inside a "deviceKeyInfo" map
+    const mso: Record<string, unknown> = {
+      version:          '1.0',
+      digestAlgorithm:  'SHA-256',
+      docType:          doctype,
+      validityInfo,
+      valueDigests:     { [ns]: valueDigestsNs },
+      deviceKeyInfo:    { deviceKey },
+    };
 
     const msoCbor = cborEncode(mso);
 
