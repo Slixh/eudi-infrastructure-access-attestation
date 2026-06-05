@@ -1,7 +1,8 @@
 {
-  "name": "eudi-iam-panel",
+  "name": "eudi-iaa-panel",
   "version": "0.1.0",
-  "private": true,
+  "author": "Iven Assenkamp, Jan Hecker",
+  "license": "Apache-2.0",
   "packageManager": "pnpm@9.0.0",
   "scripts": {
     "dev": "nuxt dev --port 3001",

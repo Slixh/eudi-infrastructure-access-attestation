@@ -1,5 +1,5 @@
 {
-  "name": "eudi-infrastructure-access-management",
+  "name": "eudi-iaa-api",
   "version": "1.0.0",
   "description": "EUDI Wallet infrastructure access management service",
   "main": "dist/main.js",
@@ -19,8 +19,8 @@
     "sign-payload": "tsx scripts/sign-payload.ts"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Iven Assenkamp, Jan Hecker",
+  "license": "Apache-2.0",
   "packageManager": "pnpm@9.0.0",
   "dependencies": {
     "@nestjs/common": "^11.1.24",
