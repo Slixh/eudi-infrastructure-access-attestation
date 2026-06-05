@@ -170,19 +170,19 @@ const RESOURCES: ResourceSeed[] = [
 // ── Grants (ACTIVE — already issued) ─────────────────────────────────────────
 
 const GRANTS = [
-  { id: 'grant-001', label: 'Serverraum Berlin – Thomas Müller',     resourceId: 'dc:berlin:rz-hauptgebaeude:server-eg',    resourceEntityId: 'res-berlin-srv-eg',   status: GrantStatus.ACTIVE,  pidSubject: 'thomas.mueller:1985-03-14', credentialId: 'cred-001' },
-  { id: 'grant-002', label: 'NOC Berlin – Anna Schmidt',             resourceId: 'dc:berlin:rz-hauptgebaeude:noc',          resourceEntityId: 'res-berlin-noc',      status: GrantStatus.ACTIVE,  pidSubject: 'anna.schmidt:1990-07-22',   credentialId: 'cred-002' },
-  { id: 'grant-003', label: 'Rechenzentrum Frankfurt – Julia Weber', resourceId: 'dc:frankfurt:bankenviertel:coloc-a',       resourceEntityId: 'res-frankfurt-coloc', status: GrantStatus.ACTIVE,  pidSubject: 'julia.weber:1988-11-05',    credentialId: 'cred-003' },
-  { id: 'grant-004', label: 'Serverraum München – Klaus Bauer',      resourceId: 'dc:muenchen:maxvorstadt:server-eg',        resourceEntityId: 'res-muenchen-srv-eg', status: GrantStatus.ACTIVE,  pidSubject: 'klaus.bauer:1979-04-30',    credentialId: 'cred-004' },
-  { id: 'grant-005', label: 'NOC München – Sandra Fischer',          resourceId: 'dc:muenchen:maxvorstadt:dmz',             resourceEntityId: 'res-muenchen-dmz',    status: GrantStatus.ACTIVE,  pidSubject: 'sandra.fischer:1993-09-12', credentialId: 'cred-005' },
-  { id: 'grant-006', label: 'Serverraum Hamburg – Markus Wagner',    resourceId: 'dc:hamburg:hafen:server-nord',            resourceEntityId: 'res-hamburg-srv-1',   status: GrantStatus.ACTIVE,  pidSubject: 'markus.wagner:1982-02-28',  credentialId: 'cred-006' },
-  { id: 'grant-007', label: 'Serverraum Dülmen – Erika Becker',      resourceId: 'dc:duelmen:hauptgebaeude:server',         resourceEntityId: 'res-duelmen-srv',     status: GrantStatus.ACTIVE,  pidSubject: 'erika.becker:1975-06-17',   credentialId: 'cred-007' },
-  { id: 'grant-008', label: 'Netzwerk Dülmen – Lukas Hoffmann',      resourceId: 'dc:duelmen:hauptgebaeude:patch',          resourceEntityId: 'res-duelmen-patch',   status: GrantStatus.ACTIVE,  pidSubject: 'lukas.hoffmann:1995-01-08', credentialId: 'cred-008' },
-  { id: 'grant-009', label: 'Serverraum Hilchenbach – Petra Schulz', resourceId: 'dc:hilchenbach:siegerland:server',        resourceEntityId: 'res-hilchenbach-srv', status: GrantStatus.ACTIVE,  pidSubject: 'petra.schulz:1987-12-03',   credentialId: 'cred-009' },
-  { id: 'grant-010', label: 'HPC Karlsruhe – Dr. Michael Braun',     resourceId: 'dc:karlsruhe:technologiepark:hpc-ki',     resourceEntityId: 'res-karlsruhe-hpc',   status: GrantStatus.ACTIVE,  pidSubject: 'michael.braun:1980-08-25',  credentialId: 'cred-010' },
+  { id: 'grant-001', label: 'Serverraum Berlin – Thomas Müller',     resourceId: 'dc:berlin:rz-hauptgebaeude:server-eg',    resourceEntityIds: ['res-berlin-srv-eg'],   status: GrantStatus.ACTIVE,  pidSubject: 'thomas.mueller:1985-03-14', credentialId: 'cred-001' },
+  { id: 'grant-002', label: 'NOC Berlin – Anna Schmidt',             resourceId: 'dc:berlin:rz-hauptgebaeude:noc',          resourceEntityIds: ['res-berlin-noc'],      status: GrantStatus.ACTIVE,  pidSubject: 'anna.schmidt:1990-07-22',   credentialId: 'cred-002' },
+  { id: 'grant-003', label: 'Rechenzentrum Frankfurt – Julia Weber', resourceId: 'dc:frankfurt:bankenviertel:coloc-a',       resourceEntityIds: ['res-frankfurt-coloc'], status: GrantStatus.ACTIVE,  pidSubject: 'julia.weber:1988-11-05',    credentialId: 'cred-003' },
+  { id: 'grant-004', label: 'Serverraum München – Klaus Bauer',      resourceId: 'dc:muenchen:maxvorstadt:server-eg',        resourceEntityIds: ['res-muenchen-srv-eg'], status: GrantStatus.ACTIVE,  pidSubject: 'klaus.bauer:1979-04-30',    credentialId: 'cred-004' },
+  { id: 'grant-005', label: 'NOC München – Sandra Fischer',          resourceId: 'dc:muenchen:maxvorstadt:dmz',             resourceEntityIds: ['res-muenchen-dmz'],    status: GrantStatus.ACTIVE,  pidSubject: 'sandra.fischer:1993-09-12', credentialId: 'cred-005' },
+  { id: 'grant-006', label: 'Serverraum Hamburg – Markus Wagner',    resourceId: 'dc:hamburg:hafen:server-nord',            resourceEntityIds: ['res-hamburg-srv-1'],   status: GrantStatus.ACTIVE,  pidSubject: 'markus.wagner:1982-02-28',  credentialId: 'cred-006' },
+  { id: 'grant-007', label: 'Serverraum Dülmen – Erika Becker',      resourceId: 'dc:duelmen:hauptgebaeude:server',         resourceEntityIds: ['res-duelmen-srv'],     status: GrantStatus.ACTIVE,  pidSubject: 'erika.becker:1975-06-17',   credentialId: 'cred-007' },
+  { id: 'grant-008', label: 'Netzwerk Dülmen – Lukas Hoffmann',      resourceId: 'dc:duelmen:hauptgebaeude:patch',          resourceEntityIds: ['res-duelmen-patch'],   status: GrantStatus.ACTIVE,  pidSubject: 'lukas.hoffmann:1995-01-08', credentialId: 'cred-008' },
+  { id: 'grant-009', label: 'Serverraum Hilchenbach – Petra Schulz', resourceId: 'dc:hilchenbach:siegerland:server',        resourceEntityIds: ['res-hilchenbach-srv'], status: GrantStatus.ACTIVE,  pidSubject: 'petra.schulz:1987-12-03',   credentialId: 'cred-009' },
+  { id: 'grant-010', label: 'HPC Karlsruhe – Dr. Michael Braun',     resourceId: 'dc:karlsruhe:technologiepark:hpc-ki',     resourceEntityIds: ['res-karlsruhe-hpc'],   status: GrantStatus.ACTIVE,  pidSubject: 'michael.braun:1980-08-25',  credentialId: 'cred-010' },
   // Pending — not yet claimed
-  { id: 'grant-011', label: 'Serverraum Köln – Neue Stelle',         resourceId: 'dc:koeln:innenstadt:rz-eg',               resourceEntityId: 'res-koeln-rz-eg',     status: GrantStatus.PENDING, pidSubject: null,                        credentialId: null       },
-  { id: 'grant-012', label: 'Backup Stuttgart – Wartungszugang',     resourceId: 'dc:stuttgart:mitte:server-hg',            resourceEntityId: 'res-stuttgart-srv',   status: GrantStatus.PENDING, pidSubject: null,                        credentialId: null       },
+  { id: 'grant-011', label: 'Serverraum Köln – Neue Stelle',         resourceId: 'dc:koeln:innenstadt:rz-eg',               resourceEntityIds: ['res-koeln-rz-eg'],     status: GrantStatus.PENDING, pidSubject: null,                        credentialId: null       },
+  { id: 'grant-012', label: 'Backup Stuttgart – Wartungszugang',     resourceId: 'dc:stuttgart:mitte:server-hg',            resourceEntityIds: ['res-stuttgart-srv'],   status: GrantStatus.PENDING, pidSubject: null,                        credentialId: null       },
 ]
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -217,13 +217,13 @@ async function main() {
       where:  { id: g.id },
       update: { status: g.status },
       create: {
-        id:              g.id,
-        label:           g.label,
-        resourceId:      g.resourceId,
-        resourceEntityId:g.resourceEntityId,
-        status:          g.status,
-        pidSubject:      g.pidSubject,
-        credentialId:    g.credentialId,
+        id:          g.id,
+        label:       g.label,
+        resourceId:  g.resourceId,
+        status:      g.status,
+        pidSubject:  g.pidSubject,
+        credentialId:g.credentialId,
+        resources:   { connect: g.resourceEntityIds.map((id) => ({ id })) },
       },
     })
   }
