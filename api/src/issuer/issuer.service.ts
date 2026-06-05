@@ -16,7 +16,13 @@ import type { Response } from 'express';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import { encode as cborEncode, Tag } from 'cbor-x';
+import { Encoder, Tag } from 'cbor-x';
+
+// ISO 18013-5 and COSE require plain CBOR maps (major type 5).
+// cbor-x by default wraps JavaScript Map objects in Tag(259) — that breaks
+// every Android / iOS wallet parser. Disable Tag(259) for all mDoc encoding.
+const cborEncoder = new Encoder({ useTag259ForMaps: false });
+const cborEncode = (value: unknown): Uint8Array => cborEncoder.encode(value);
 
 // ---------------------------------------------------------------------------
 // OID4VCI Issuer — Pre-Authorized Code Flow
@@ -594,10 +600,11 @@ export class IssuerService implements OnModuleInit {
       [ns]: issuerSignedItems,
     };
 
+    // ISO 18013-5 §9.1.2.4: signed/validFrom/validUntil MUST be tdate (CBOR Tag 0)
     const validityInfo = {
-      signed: validFromIso,
-      validFrom: validFromIso,
-      validUntil: validUntilIso,
+      signed:     new Tag(validFromIso, 0),
+      validFrom:  new Tag(validFromIso, 0),
+      validUntil: new Tag(validUntilIso, 0),
     };
 
     // Build deviceKey (COSE_Key) from wallet JWK (expecting EC P-256 with x/y)
