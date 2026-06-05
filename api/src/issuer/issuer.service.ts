@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
   BadRequestException,
   OnModuleInit,
+  HttpException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -15,6 +16,7 @@ import type { Response } from 'express';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
+import { encode as cborEncode, Tag } from 'cbor-x';
 
 // ---------------------------------------------------------------------------
 // OID4VCI Issuer — Pre-Authorized Code Flow
@@ -41,6 +43,7 @@ interface TokenState {
   pidSubject: string;
   cNonce: string;
   createdAt: Date;
+  issuedConfigurations?: Set<string>; // track which credential_configuration_ids already issued for this token
 }
 
 interface AuthCodeState {
@@ -66,6 +69,7 @@ export class IssuerService implements OnModuleInit {
   private signingKeyPem: string;
   private baseUrl: string;
   private publicJwk: object;   // issuer public key for JWKS endpoint
+  private mdocSchema?: any;    // loaded from catalog/credential-schema-mdoc.json
 
   constructor(
     private readonly config: ConfigService,
@@ -85,6 +89,16 @@ export class IssuerService implements OnModuleInit {
       ),
     );
     this.signingKeyPem = fs.readFileSync(keyPath, 'utf8');
+
+    // Load mDoc schema from catalog if available
+    try {
+      const schemaPath = path.resolve('catalog/credential-schema-mdoc.json');
+      const schemaRaw = fs.readFileSync(schemaPath, 'utf8');
+      this.mdocSchema = JSON.parse(schemaRaw);
+      this.logger.log('Loaded mDoc schema from catalog/credential-schema-mdoc.json');
+    } catch (e) {
+      this.logger.warn('mDoc schema not found or unreadable at catalog/credential-schema-mdoc.json');
+    }
 
     // Derive and cache the public JWK for JWKS endpoint
     const privKey = crypto.createPrivateKey(this.signingKeyPem);
@@ -186,7 +200,7 @@ export class IssuerService implements OnModuleInit {
     // misinterpreting it as tx_code present.
     const offer = {
       credential_issuer: this.baseUrl,   // must match issuer in metadata (root, no /issuer)
-      credential_configuration_ids: [EAA_VCT],
+      credential_configuration_ids: [`${EAA_VCT}:mso_mdoc`],
       grants: {
         'urn:ietf:params:oauth:grant-type:pre-authorized_code': {
           'pre-authorized_code': preAuthCode,
@@ -205,7 +219,7 @@ export class IssuerService implements OnModuleInit {
 
     return {
       credential_issuer: this.baseUrl,
-      credential_configuration_ids: [EAA_VCT],
+      credential_configuration_ids: [`${EAA_VCT}:mso_mdoc`],
       grants: {
         'urn:ietf:params:oauth:grant-type:pre-authorized_code': {
           'pre-authorized_code': preAuthCode,
@@ -224,7 +238,13 @@ export class IssuerService implements OnModuleInit {
       if (!preAuthCode) throw new BadRequestException('Missing pre-authorized_code');
 
       const offerState = this.pendingOffers.get(preAuthCode);
-      if (!offerState) throw new UnauthorizedException('Unknown or expired pre-authorized_code');
+      if (!offerState) {
+        // OAuth 2.0 error shape expected by wallets
+        throw new HttpException(
+          { error: 'invalid_grant', error_description: 'Unknown or expired pre-authorized_code' },
+          400,
+        );
+      }
 
       // One-time use — delete immediately
       this.pendingOffers.delete(preAuthCode);
@@ -237,6 +257,7 @@ export class IssuerService implements OnModuleInit {
         pidSubject: offerState.pidSubject,
         cNonce,
         createdAt: new Date(),
+        issuedConfigurations: new Set<string>(),
       });
 
       this.logger.log(`Token issued for grant ${offerState.grantId}`);
@@ -303,6 +324,7 @@ export class IssuerService implements OnModuleInit {
         pidSubject: 'N/A',
         cNonce,
         createdAt: new Date(),
+        issuedConfigurations: new Set<string>(),
       });
 
       // One-time use — delete auth code
@@ -317,7 +339,11 @@ export class IssuerService implements OnModuleInit {
       };
     }
 
-    throw new BadRequestException(`Unsupported grant_type: ${grantType}`);
+    // RFC 6749: unsupported_grant_type
+    throw new HttpException(
+      { error: 'unsupported_grant_type', error_description: `Unsupported grant_type: ${grantType}` },
+      400,
+    );
   }
 
   // ── 4. Credential endpoint ─────────────────────────────────────────────────
@@ -327,11 +353,20 @@ export class IssuerService implements OnModuleInit {
   ): Promise<Record<string, unknown>> {
     // Validate bearer token
     if (!authHeader?.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing Bearer token');
+      // RFC 6750 invalid_token
+      throw new HttpException(
+        { error: 'invalid_token', error_description: 'Missing Bearer token' },
+        401,
+      );
     }
     const accessToken = authHeader.slice(7);
     const tokenState = this.pendingTokens.get(accessToken);
-    if (!tokenState) throw new UnauthorizedException('Unknown or expired access token');
+    if (!tokenState) {
+      throw new HttpException(
+        { error: 'invalid_token', error_description: 'Unknown or expired access token' },
+        401,
+      );
+    }
 
     // Validate proof of possession.
     // Draft 13: { "proof":  { "proof_type": "jwt", "jwt": "<string>" } }
@@ -346,19 +381,30 @@ export class IssuerService implements OnModuleInit {
     } else if (proofs?.jwt && Array.isArray(proofs.jwt) && proofs.jwt.length > 0) {
       proofJwt = proofs.jwt[0] as string;
     }
-    if (!proofJwt) throw new BadRequestException('Missing proof.jwt (key proof required)');
+    if (!proofJwt) {
+      throw new HttpException(
+        { error: 'invalid_request', error_description: 'Missing proof.jwt (key proof required)' },
+        400,
+      );
+    }
 
     // Decode proof header + payload (no sig verify yet — need key first)
     const proofParts = proofJwt.split('.');
-    if (proofParts.length !== 3) throw new BadRequestException('Malformed proof JWT');
+    if (proofParts.length !== 3) {
+      throw new HttpException(
+        { error: 'invalid_request', error_description: 'Malformed proof JWT' },
+        400,
+      );
+    }
     const proofHeader  = JSON.parse(Buffer.from(proofParts[0], 'base64url').toString());
     const proofPayload = JSON.parse(Buffer.from(proofParts[1], 'base64url').toString());
 
     // c_nonce check — OID4VCI requires wallet to include nonce from token response.
     // Some wallet implementations omit it; log a warning but continue.
     if (proofPayload.nonce && proofPayload.nonce !== tokenState.cNonce) {
-      throw new UnauthorizedException(
-        `Proof nonce mismatch: expected ${tokenState.cNonce}, got ${proofPayload.nonce}`,
+      throw new HttpException(
+        { error: 'invalid_request', error_description: `Proof nonce mismatch: expected ${tokenState.cNonce}, got ${proofPayload.nonce}` },
+        400,
       );
     }
     if (!proofPayload.nonce) {
@@ -366,7 +412,12 @@ export class IssuerService implements OnModuleInit {
     }
 
     // Wallet public key from proof header
-    if (!proofHeader.jwk) throw new BadRequestException('Proof JWT must carry jwk header');
+    if (!proofHeader.jwk) {
+      throw new HttpException(
+        { error: 'invalid_request', error_description: 'Proof JWT must carry jwk header' },
+        400,
+      );
+    }
     const walletPubKey = await importJWK(proofHeader.jwk, proofHeader.alg ?? 'ES256') as CryptoKey;
 
     // Verify proof signature
@@ -374,33 +425,59 @@ export class IssuerService implements OnModuleInit {
       await jwtVerify(proofJwt, walletPubKey, { algorithms: [proofHeader.alg ?? 'ES256'] });
       this.logger.debug('Proof JWT signature verified ✓');
     } catch (e) {
-      throw new UnauthorizedException(`Proof JWT signature invalid: ${String(e)}`);
+      throw new HttpException(
+        { error: 'invalid_request', error_description: `Proof JWT signature invalid: ${String(e)}` },
+        401,
+      );
     }
 
     const grant = await this.grantService.findOne(tokenState.grantId);
 
-    // Build and sign the EAA SD-JWT VC
-    const credential = this.issueEaaCredential(grant, tokenState.pidSubject, proofHeader.jwk);
+    // Wallet may request a specific configuration id
+    const requestedConfigId = (body['credential_configuration_id'] as string | undefined)?.trim();
 
-    // Activate grant
+    // Determine which credentials to issue
+    const issueSdJwt = !requestedConfigId || requestedConfigId === EAA_VCT;
+    const issueMdoc  = !requestedConfigId || requestedConfigId === `${EAA_VCT}:mso_mdoc`;
+
+    const credentials: Array<{ format: string; credential: string }> = [];
+
+    if (issueSdJwt) {
+      const sd = this.issueEaaCredential(
+        grant,
+        tokenState.pidSubject,
+        proofHeader.jwk,
+      );
+      credentials.push({ format: 'dc+sd-jwt', credential: sd });
+      tokenState.issuedConfigurations?.add(EAA_VCT);
+    }
+
+    if (issueMdoc) {
+      const mdoc = this.issueEaaMdoc(grant, tokenState.pidSubject, proofHeader.jwk);
+      credentials.push({ format: 'mso_mdoc', credential: mdoc });
+      tokenState.issuedConfigurations?.add(`${EAA_VCT}:mso_mdoc`);
+    }
+
+    if (credentials.length === 0) {
+      // Unknown configuration requested
+      throw new HttpException(
+        { error: 'invalid_request', error_description: `Unknown credential_configuration_id: ${requestedConfigId}` },
+        400,
+      );
+    }
+
+    // Activate grant once (first issuance) — create a credentialId per session
     const credentialId = crypto.randomUUID();
     await this.grantService.activate(grant.id, tokenState.pidSubject, credentialId);
 
-    // One-time use — delete token
-    this.pendingTokens.delete(accessToken);
-
     this.logger.log(
-      `EAA issued — grant: ${grant.id}, resource: ${grant.resourceId}, subject: ${tokenState.pidSubject}`,
+      `EAA issued (${credentials.map(c => c.format).join(', ')}) — grant: ${grant.id}, resource: ${grant.resourceId}, subject: ${tokenState.pidSubject}`,
     );
 
-    return {
-      credentials: [
-        {
-          format: 'dc+sd-jwt',
-          credential,
-        }
-      ]
-    };
+    // Keep token valid until TTL to allow multiple configurations to be fetched
+    // (no deletion here)
+
+    return { credentials };
   }
 
   // ── Build SD-JWT VC ────────────────────────────────────────────────────────
@@ -447,6 +524,137 @@ export class IssuerService implements OnModuleInit {
 
     // SD-JWT: issuer-jwt~disc1~disc2~  (trailing ~ = no KB-JWT at issuance time)
     return [issuerJwt, ...disclosures.map(d => d.encoded), ''].join('~');
+  }
+
+  // ── Build mDoc (mso_mdoc) — ISO 18013-5 compliant IssuerSigned with issuerAuth ─
+  // Returns base64url(CBOR(IssuerSigned)) where IssuerSigned contains:
+  // - nameSpaces (camelCase): { <namespace>: { <elementIdentifier>: <elementValue>, ... } }
+  // - issuerAuth: COSE_Sign1 over the Mobile Security Object (MSO)
+  // The MSO includes docType, validityInfo, digestAlgorithm, valueDigests for each
+  // data element present in nameSpaces. Signature uses ES256 (COSE alg -7).
+  private issueEaaMdoc(
+    grant: any,
+    pidSubject: string,
+    walletJwk: any,
+  ): string {
+    const nowMs = Date.now();
+
+    // mDoc schema-driven values
+    const schema = this.mdocSchema ?? {};
+    const doctype: string = schema.doctype || 'urn:eudi:eaa:infrastructure:access:1';
+    const ns: string = schema.claims ? Object.keys(schema.claims)[0] : 'urn:eudi:eaa:infrastructure:access:namespace:1';
+
+    const validFromIso = new Date(nowMs).toISOString();
+    const validUntilIso = new Date(nowMs + 365 * 24 * 3600 * 1000).toISOString();
+
+    // Build IssuerSigned.nameSpaces (camelCase per spec)
+    const nameSpaces: Record<string, Record<string, any>> = {
+      [ns]: {
+        granted_resource: grant.resourceId,
+        grant_id: grant.id,
+        valid_from: validFromIso,
+        valid_until: validUntilIso,
+      },
+    };
+
+    // Construct Mobile Security Object (MSO) with value digests
+    const valueDigests: Record<string, Record<string, string>> = {};
+    for (const [namespace, elements] of Object.entries(nameSpaces)) {
+      const elementDigests: Record<string, string> = {};
+      for (const [elementIdentifier, elementValue] of Object.entries(elements)) {
+        const elemCbor = cborEncode(elementValue);
+        const digest = crypto.createHash('sha256').update(Buffer.from(elemCbor)).digest('base64url');
+        elementDigests[elementIdentifier] = digest;
+      }
+      valueDigests[namespace] = elementDigests;
+    }
+
+    const validityInfo = {
+      signed: validFromIso,
+      validFrom: validFromIso,
+      validUntil: validUntilIso,
+    };
+
+    // Build deviceKey (COSE_Key) from wallet JWK (expecting EC P-256 with x/y)
+    let deviceKey: Map<any, any> | undefined;
+    try {
+      const kty = walletJwk?.kty;
+      const crv = walletJwk?.crv;
+      const xB64 = walletJwk?.x;
+      const yB64 = walletJwk?.y;
+      if (kty === 'EC' && (crv === 'P-256' || crv === 'secp256r1') && xB64 && yB64) {
+        // COSE_Key labels: 1=kty(2=EC2), -1=crv(1=P-256), -2=x, -3=y
+        deviceKey = new Map<any, any>();
+        deviceKey.set(1, 2); // kty: EC2
+        deviceKey.set(-1, 1); // crv: P-256
+        deviceKey.set(-2, Buffer.from(xB64, 'base64url'));
+        deviceKey.set(-3, Buffer.from(yB64, 'base64url'));
+        if (walletJwk.kid) {
+          deviceKey.set(2, Buffer.from(String(walletJwk.kid))); // kid as bstr if present
+        }
+      }
+    } catch { /* ignore, will validate below */ }
+
+    const mso = {
+      version: '1.0',
+      digestAlgorithm: 'SHA-256',
+      docType: doctype,
+      validityInfo,
+      valueDigests,
+      deviceKey: deviceKey ?? undefined,
+      // Optional subject binding for demo visibility only (non-standard in MSO)
+      // subject: pidSubject,
+    } as Record<string, unknown>;
+
+    if (!mso['deviceKey']) {
+      this.logger.warn('MSO deviceKey could not be derived from wallet JWK — expected EC P-256 with x/y.');
+    }
+
+    const msoCbor = cborEncode(mso);
+
+    // Build COSE_Sign1 over MSO (issuerAuth)
+    // protected header: { alg: -7, kid: 'issuer-key-1' }
+    const protectedHeaderMap = new Map<any, any>();
+    protectedHeaderMap.set(1, -7); // alg: ES256
+    protectedHeaderMap.set(4, Buffer.from('issuer-key-1')); // kid as bstr
+    const protectedBstr: Uint8Array = cborEncode(protectedHeaderMap);
+    const unprotected: Record<string, unknown> = {};
+
+    const sigStructure = [
+      'Signature1',
+      Buffer.from(protectedBstr as any),
+      new Uint8Array(0), // external_aad
+      Buffer.from(msoCbor as any),
+    ];
+    const toBeSigned = cborEncode(sigStructure);
+
+    const signature = crypto
+      .createSign('sha256')
+      .update(Buffer.from(toBeSigned as any))
+      .sign({ key: this.signingKeyPem, dsaEncoding: 'ieee-p1363' }); // raw R||S
+
+    const coseSign1 = [
+      Buffer.from(protectedBstr as any),
+      unprotected,
+      Buffer.from(msoCbor as any),
+      Buffer.from(signature as any),
+    ];
+
+    // Wrap COSE_Sign1 with CBOR semantic tag 18 as required by many parsers
+    // cbor-x Tag constructor is (value, tag)
+    const coseSign1Tagged = new Tag(coseSign1, 18);
+
+    // Assemble IssuerSigned with required keys: nameSpaces (camelCase) + issuerAuth
+    const issuerSigned = {
+      // Per ISO 18013-5 §9.1.2.5 only nameSpaces and issuerAuth are present
+      nameSpaces,
+      issuerAuth: coseSign1Tagged,
+    } as Record<string, unknown>;
+
+    this.logger.debug(`mDoc IssuerSigned ready — keys=[${Object.keys(issuerSigned).join(',')}] MSO.version=${(mso as any).version} deviceKey=${mso['deviceKey'] ? 'present' : 'absent'}`);
+
+    const issuerSignedCbor = cborEncode(issuerSigned);
+    return Buffer.from(issuerSignedCbor).toString('base64url');
   }
 
   // ── Issuer metadata (/.well-known/openid-credential-issuer) ───────────────
@@ -507,6 +715,49 @@ export class IssuerService implements OnModuleInit {
             issued_to:        { display: [{ name: 'Issued To',        locale: 'en-US' }] },
           },
         },
+        // Also advertise an mDoc variant of the same credential using wallet-expected structure
+        [`${EAA_VCT}:mso_mdoc`]: (() => {
+          const defaultDoctype = 'urn:eudi:eaa:infrastructure:access:1';
+          const defaultNamespace = 'urn:eudi:eaa:infrastructure:access:namespace:1';
+          const schema = this.mdocSchema ?? {};
+          const doctype = schema.doctype || defaultDoctype;
+          const ns = (schema.claims && Object.keys(schema.claims)[0]) || defaultNamespace;
+
+          const defaultNsClaims = {
+            granted_resource: { mandatory: true, value_type: 'string', display: [{ name: 'Granted Resource', description: 'Identifier of the physical resource the holder may access', locale: 'en-US' }] },
+            grant_id:        { mandatory: true, value_type: 'string', display: [{ name: 'Grant ID',        description: 'Internal grant reference for audit purposes', locale: 'en-US' }] },
+            valid_from:      { mandatory: true, value_type: 'string', display: [{ name: 'Valid From',      locale: 'en-US' }] },
+            valid_until:     { mandatory: true, value_type: 'string', display: [{ name: 'Valid Until',     locale: 'en-US' }] },
+          } as Record<string, any>;
+
+          const nsClaims: Record<string, any> = (schema.claims && schema.claims[ns]) || defaultNsClaims;
+
+          const claimsArray = Object.entries(nsClaims).map(([claimName, cfg]: [string, any]) => ({
+            path: [ns, claimName],
+            mandatory: !!cfg.mandatory,
+            display: Array.isArray(cfg.display) ? cfg.display : [{ name: claimName, locale: 'en-US' }],
+          }));
+
+          const display = Array.isArray(schema.display) && schema.display.length > 0
+            ? schema.display
+            : [{ name: 'Infrastructure Access Attestation (mDoc)', locale: 'en-US' }];
+
+          return {
+            format: 'mso_mdoc',
+            scope: `${EAA_VCT}:mso_mdoc`,
+            cryptographic_binding_methods_supported: ['jwk'],
+            proof_types_supported: {
+              jwt: { proof_signing_alg_values_supported: ['ES256'] },
+            },
+            // For mDoc COSE, use COSE alg IDs. -7 = ES256
+            credential_signing_alg_values_supported: [-7],
+            doctype: doctype,
+            credential_metadata: {
+              display,
+              claims: claimsArray,
+            },
+          };
+        })(),
       },
     };
   }
