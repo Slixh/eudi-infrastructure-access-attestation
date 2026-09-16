@@ -153,9 +153,6 @@ export class IssuerService implements OnModuleInit {
   }
 
   // ── OAuth2 Authorize endpoint (ABA client authentication demo) ────────────
-  // Minimal implementation to satisfy wallets validating the discovery doc.
-  // Supports response_type=code and client attestation via client_assertion
-  // using the experimental "attest_jwt_client_auth" value.
   handleAuthorizeRequest(
     query: Record<string, string>,
     headers: Record<string, string>,
@@ -175,7 +172,6 @@ export class IssuerService implements OnModuleInit {
     }
     if (!redirectUri) throw new BadRequestException('redirect_uri is required');
 
-    // Validate attestation-based client authentication (minimal checks)
     if (clientAssertionType && clientAssertionType !== 'attest_jwt_client_auth') {
       throw new BadRequestException('Unsupported client_assertion_type');
     }
@@ -186,10 +182,8 @@ export class IssuerService implements OnModuleInit {
         const [hB64, pB64] = clientAssertion.split('.');
         const hdr = JSON.parse(Buffer.from(hB64, 'base64url').toString());
         const pl  = JSON.parse(Buffer.from(pB64, 'base64url').toString());
-        // For demo purposes, accept unsigned/unknown issuer, but require a jwk in header
         if (!hdr.jwk) throw new Error('attestation missing jwk');
         clientJwk = hdr.jwk;
-        // Basic freshness checks if present
         if (pl.exp && typeof pl.exp === 'number' && pl.exp < Math.floor(Date.now()/1000)) {
           throw new Error('attestation expired');
         }
@@ -198,7 +192,6 @@ export class IssuerService implements OnModuleInit {
       }
     }
 
-    // Create authorization code and store session
     const code = crypto.randomBytes(24).toString('base64url');
     this.pendingAuthCodes.set(code, {
       redirectUri,
@@ -210,7 +203,6 @@ export class IssuerService implements OnModuleInit {
       createdAt: new Date(),
     });
 
-    // Redirect back with code (+ state if provided)
     const url = new URL(redirectUri);
     url.searchParams.set('code', code);
     if (state) url.searchParams.set('state', state);
@@ -219,18 +211,12 @@ export class IssuerService implements OnModuleInit {
   }
 
   // ── 1. Create credential offer ─────────────────────────────────────────────
-  // Called by VerifierService after successful PID VP verification.
-  // Returns an openid-credential-offer:// deep link with the offer object inline.
   async createCredentialOffer(grantId: string, pidSubject: string): Promise<string> {
     const preAuthCode = crypto.randomUUID();
     this.pendingOffers.set(preAuthCode, { grantId, pidSubject, createdAt: new Date() });
 
-    // Strict OID4VCI Draft 13 format.
-    // tx_code absent = no PIN/transaction code required.
-    // user_pin_required is a Draft ≤12 field — omitting it avoids wallets
-    // misinterpreting it as tx_code present.
     const offer = {
-      credential_issuer: this.baseUrl,   // must match issuer in metadata (root, no /issuer)
+      credential_issuer: this.baseUrl,
       credential_configuration_ids: [`${EAA_VCT}:mso_mdoc`],
       grants: {
         'urn:ietf:params:oauth:grant-type:pre-authorized_code': {
@@ -239,7 +225,6 @@ export class IssuerService implements OnModuleInit {
       },
     };
 
-    // Inline offer — wallet parses credential_offer query param directly
     return `openid-credential-offer://?credential_offer=${encodeURIComponent(JSON.stringify(offer))}`;
   }
 
@@ -263,21 +248,18 @@ export class IssuerService implements OnModuleInit {
   async handleTokenRequest(body: Record<string, string>): Promise<Record<string, unknown>> {
     const grantType = body['grant_type'];
 
-    // ── Pre-Authorized Code (OID4VCI) ───────────────────────────────────────
     if (grantType === 'urn:ietf:params:oauth:grant-type:pre-authorized_code') {
       const preAuthCode = body['pre-authorized_code'];
       if (!preAuthCode) throw new BadRequestException('Missing pre-authorized_code');
 
       const offerState = this.pendingOffers.get(preAuthCode);
       if (!offerState) {
-        // OAuth 2.0 error shape expected by wallets
         throw new HttpException(
           { error: 'invalid_grant', error_description: 'Unknown or expired pre-authorized_code' },
           400,
         );
       }
 
-      // One-time use — delete immediately
       this.pendingOffers.delete(preAuthCode);
 
       const accessToken = `iat.${crypto.randomBytes(24).toString('base64url')}`;
@@ -302,7 +284,6 @@ export class IssuerService implements OnModuleInit {
       };
     }
 
-    // ── Authorization Code (ABA demo) ───────────────────────────────────────
     if (grantType === 'authorization_code') {
       const code = body['code'];
       const codeVerifier = body['code_verifier'];
@@ -312,7 +293,6 @@ export class IssuerService implements OnModuleInit {
       const session = code ? this.pendingAuthCodes.get(code) : undefined;
       if (!session) throw new UnauthorizedException('Invalid or expired authorization code');
 
-      // PKCE validation if provided
       if (session.codeChallenge) {
         if (!codeVerifier) throw new UnauthorizedException('code_verifier required');
         const hashed = session.codeChallengeMethod === 'S256'
@@ -323,17 +303,14 @@ export class IssuerService implements OnModuleInit {
         }
       }
 
-      // ABA: require attestation assertion
       if (clientAssertionType !== 'attest_jwt_client_auth' || !clientAssertion) {
         throw new UnauthorizedException('attestation-based client authentication required');
       }
-      // Minimal check: ensure assertion header carries a jwk and, if present in session, it matches
       try {
         const [hB64] = clientAssertion.split('.');
         const hdr = JSON.parse(Buffer.from(hB64, 'base64url').toString());
         if (!hdr.jwk) throw new Error('missing jwk');
         if (session.clientJwk) {
-          // naive match by JWK thumbprint material
           const k1 = JSON.stringify(session.clientJwk);
           const k2 = JSON.stringify(hdr.jwk);
           if (k1 !== k2) throw new Error('attested key mismatch');
@@ -342,14 +319,9 @@ export class IssuerService implements OnModuleInit {
         throw new UnauthorizedException(`Invalid client attestation: ${String(e)}`);
       }
 
-      // For demo, bind issued token to a synthetic grant. In this server, VC issuance
-      // is rooted in a grant created elsewhere. We won't issue a VC via this path,
-      // but we return an access token + c_nonce so wallets can proceed to credential endpoint
-      // if they also performed the pre-auth flow. Therefore, just mint a token without grant.
       const accessToken = `iat.${crypto.randomBytes(24).toString('base64url')}`;
       const cNonce = crypto.randomUUID();
 
-      // Store token with empty grant/subject; credential endpoint will reject if used there.
       this.pendingTokens.set(accessToken, {
         grantId: 'N/A',
         pidSubject: 'N/A',
@@ -358,7 +330,6 @@ export class IssuerService implements OnModuleInit {
         issuedConfigurations: new Set<string>(),
       });
 
-      // One-time use — delete auth code
       this.pendingAuthCodes.delete(code!);
 
       return {
@@ -370,7 +341,6 @@ export class IssuerService implements OnModuleInit {
       };
     }
 
-    // RFC 6749: unsupported_grant_type
     throw new HttpException(
       { error: 'unsupported_grant_type', error_description: `Unsupported grant_type: ${grantType}` },
       400,
@@ -382,9 +352,7 @@ export class IssuerService implements OnModuleInit {
     authHeader: string,
     body: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
-    // Validate bearer token
     if (!authHeader?.startsWith('Bearer ')) {
-      // RFC 6750 invalid_token
       throw new HttpException(
         { error: 'invalid_token', error_description: 'Missing Bearer token' },
         401,
@@ -399,10 +367,6 @@ export class IssuerService implements OnModuleInit {
       );
     }
 
-    // Validate proof of possession.
-    // Draft 13: { "proof":  { "proof_type": "jwt", "jwt": "<string>" } }
-    // Draft 14: { "proofs": { "jwt": ["<string>"] } }
-    // Handle both formats.
     const proof  = body['proof']  as Record<string, any> | undefined;
     const proofs = body['proofs'] as Record<string, any> | undefined;
 
@@ -419,7 +383,6 @@ export class IssuerService implements OnModuleInit {
       );
     }
 
-    // Decode proof header + payload (no sig verify yet — need key first)
     const proofParts = proofJwt.split('.');
     if (proofParts.length !== 3) {
       throw new HttpException(
@@ -430,8 +393,6 @@ export class IssuerService implements OnModuleInit {
     const proofHeader  = JSON.parse(Buffer.from(proofParts[0], 'base64url').toString());
     const proofPayload = JSON.parse(Buffer.from(proofParts[1], 'base64url').toString());
 
-    // c_nonce check — OID4VCI requires wallet to include nonce from token response.
-    // Some wallet implementations omit it; log a warning but continue.
     if (proofPayload.nonce && proofPayload.nonce !== tokenState.cNonce) {
       throw new HttpException(
         { error: 'invalid_request', error_description: `Proof nonce mismatch: expected ${tokenState.cNonce}, got ${proofPayload.nonce}` },
@@ -442,14 +403,36 @@ export class IssuerService implements OnModuleInit {
       this.logger.warn(`Proof JWT missing nonce (expected ${tokenState.cNonce}) — continuing`);
     }
 
-    // Wallet public key from proof header
-    if (!proofHeader.jwk) {
+    // Extract wallet public JWK from either jwk header or key_attestation JWT
+    let walletJwk: Record<string, unknown> | undefined = proofHeader.jwk;
+
+    if (!walletJwk && proofHeader.key_attestation) {
+      try {
+        const [attHeaderB64, attPayloadB64] = (proofHeader.key_attestation as string).split('.');
+        const attPayload = JSON.parse(Buffer.from(attPayloadB64, 'base64url').toString());
+        const attHeader  = JSON.parse(Buffer.from(attHeaderB64, 'base64url').toString());
+
+        if (Array.isArray(attPayload.attested_keys) && attPayload.attested_keys.length > 0) {
+          const kidIndex = parseInt(proofHeader.kid ?? '0', 10);
+          walletJwk = attPayload.attested_keys[isNaN(kidIndex) ? 0 : kidIndex] || attPayload.attested_keys[0];
+        } else if (Array.isArray(attHeader.x5c) && attHeader.x5c.length > 0) {
+          const certDer = Buffer.from(attHeader.x5c[0], 'base64');
+          const certObj = new crypto.X509Certificate(certDer);
+          walletJwk = certObj.publicKey.export({ format: 'jwk' }) as Record<string, unknown>;
+        }
+      } catch (e) {
+        this.logger.warn(`Failed to parse key_attestation from proof header: ${String(e)}`);
+      }
+    }
+
+    if (!walletJwk) {
       throw new HttpException(
-        { error: 'invalid_request', error_description: 'Proof JWT must carry jwk header' },
+        { error: 'invalid_request', error_description: 'Proof JWT must carry jwk or key_attestation header' },
         400,
       );
     }
-    const walletPubKey = await importJWK(proofHeader.jwk, proofHeader.alg ?? 'ES256') as CryptoKey;
+
+    const walletPubKey = await importJWK(walletJwk, proofHeader.alg ?? 'ES256') as CryptoKey;
 
     // Verify proof signature
     try {
@@ -464,10 +447,8 @@ export class IssuerService implements OnModuleInit {
 
     const grant = await this.grantService.findOne(tokenState.grantId);
 
-    // Wallet may request a specific configuration id
     const requestedConfigId = (body['credential_configuration_id'] as string | undefined)?.trim();
 
-    // Determine which credentials to issue
     const issueSdJwt = !requestedConfigId || requestedConfigId === EAA_VCT;
     const issueMdoc  = !requestedConfigId || requestedConfigId === `${EAA_VCT}:mso_mdoc`;
 
@@ -477,27 +458,25 @@ export class IssuerService implements OnModuleInit {
       const sd = this.issueEaaCredential(
         grant,
         tokenState.pidSubject,
-        proofHeader.jwk,
+        walletJwk,
       );
       credentials.push({ format: 'dc+sd-jwt', credential: sd });
       tokenState.issuedConfigurations?.add(EAA_VCT);
     }
 
     if (issueMdoc) {
-      const mdoc = await this.issueEaaMdoc(grant, tokenState.pidSubject, proofHeader.jwk);
+      const mdoc = await this.issueEaaMdoc(grant, tokenState.pidSubject, walletJwk);
       credentials.push({ format: 'mso_mdoc', credential: mdoc });
       tokenState.issuedConfigurations?.add(`${EAA_VCT}:mso_mdoc`);
     }
 
     if (credentials.length === 0) {
-      // Unknown configuration requested
       throw new HttpException(
         { error: 'invalid_request', error_description: `Unknown credential_configuration_id: ${requestedConfigId}` },
         400,
       );
     }
 
-    // Activate grant once (first issuance) — create a credentialId per session
     const credentialId = crypto.randomUUID();
     await this.grantService.activate(grant.id, tokenState.pidSubject, credentialId);
 
@@ -505,22 +484,16 @@ export class IssuerService implements OnModuleInit {
       `EAA issued (${credentials.map(c => c.format).join(', ')}) — grant: ${grant.id}, resource: ${grant.resourceId}, subject: ${tokenState.pidSubject}`,
     );
 
-    // Keep token valid until TTL to allow multiple configurations to be fetched
-    // (no deletion here)
-
     return { credentials };
   }
 
   // ── Build SD-JWT VC ────────────────────────────────────────────────────────
-  // Format: <issuer-jwt>~<disclosure1>~<disclosure2>~
-  // (no KB-JWT — the holder binds themselves when presenting)
   private issueEaaCredential(
     grant: any,
     pidSubject: string,
     walletJwk: object,
   ): string {
     const now = Math.floor(Date.now() / 1000);
-    // Selectively disclosable claims
     const sdEntries: Array<[string, unknown]> = [
       ['granted_resource', grant.resourceId],
       ['issued_to',        pidSubject],
@@ -534,7 +507,7 @@ export class IssuerService implements OnModuleInit {
     });
 
     const payload = {
-      iss:     this.baseUrl,   // must match issuer in /.well-known/jwt-vc-issuer
+      iss:     this.baseUrl,
       iat:     now,
       exp:     now + 365 * 24 * 3600,
       vct:     EAA_VCT,
@@ -545,20 +518,16 @@ export class IssuerService implements OnModuleInit {
       _sd_alg: 'sha-256',
     };
 
-    // EudiWalletKit requires either x5c or kid in the SD-JWT header.
-    // kid references our public key in /.well-known/jwt-vc-issuer → jwks.keys[0]
     const issuerJwt = signCompact(
       { alg: 'ES256', typ: 'dc+sd-jwt', kid: 'issuer-key-1' },
       payload,
       this.signingKeyPem,
     );
 
-    // SD-JWT: issuer-jwt~disc1~disc2~  (trailing ~ = no KB-JWT at issuance time)
     return [issuerJwt, ...disclosures.map(d => d.encoded), ''].join('~');
   }
 
   // ── Build mDoc (mso_mdoc) with OWF mdoc-ts ────────────────────────────────
-  // Returns base64url(CBOR(IssuerSigned)) as expected by OID4VCI mso_mdoc.
   private async issueEaaMdoc(
     grant: any,
     pidSubject: string,
@@ -663,27 +632,15 @@ export class IssuerService implements OnModuleInit {
   // ── Issuer metadata (/.well-known/openid-credential-issuer) ───────────────
   getIssuerMetadata() {
     const base   = `${this.baseUrl}/issuer`;
-    // RFC 8414 §5: the `issuer` field MUST match the URL from which the well-known
-    // document was retrieved. The iOS EUDI wallet fetches
-    // GET /.well-known/openid-credential-issuer (no path suffix), so it expects
-    // issuer == this.baseUrl (NOT this.baseUrl/issuer).
-    // credential_issuer and issuer must therefore be set to the root URL.
     const origin = this.baseUrl;
 
     return {
-      // OID4VCI §11 — credential issuer at root, endpoints under /issuer/
       credential_issuer: origin,
       credential_endpoint: `${base}/credential`,
       token_endpoint: `${base}/token`,
-
-      // RFC 8414 / OIDC Discovery required fields
       issuer: origin,
-      // authorization_endpoint is required by OIDC Discovery validation even for
-      // pre-auth flow where it is never actually called.
       authorization_endpoint: `${base}/authorize`,
-      // Authorization endpoint client authentication — advertise attestation-based client auth
       authorization_endpoint_auth_methods_supported: ['attest_jwt_client_auth'],
-      // jwks_uri: wallet fetches this to verify issued credentials (required by OIDC Discovery)
       jwks_uri: `${base}/jwks`,
       grant_types_supported: [
         'urn:ietf:params:oauth:grant-type:pre-authorized_code',
@@ -691,14 +648,11 @@ export class IssuerService implements OnModuleInit {
       ],
       token_endpoint_auth_methods_supported: ['none', 'attest_jwt_client_auth'],
       response_types_supported: ['token', 'code'],
-      // Hints commonly expected by wallets
       request_parameter_supported: true,
       code_challenge_methods_supported: ['S256', 'plain'],
       scopes_supported: ['openid', 'InfrastructureAccessEAA'],
       subject_types_supported: ['public'],
-      // Newer ABA draft fields expected by EUDI Wallet
       client_attestation_signing_alg_values_supported: ['ES256'],
-      // Rename POP algs field to the expected key (no _jwt)
       client_attestation_pop_signing_alg_values_supported: ['ES256'],
       id_token_signing_alg_values_supported: ['ES256'],
 
@@ -718,7 +672,6 @@ export class IssuerService implements OnModuleInit {
             issued_to:        { display: [{ name: 'Issued To',        locale: 'en-US' }] },
           },
         },
-        // Also advertise an mDoc variant of the same credential using wallet-expected structure
         [`${EAA_VCT}:mso_mdoc`]: (() => {
           const defaultDoctype = 'urn:eudi:eaa:infrastructure:access:1';
           const defaultNamespace = 'urn:eudi:eaa:infrastructure:access:namespace:1';
@@ -750,9 +703,8 @@ export class IssuerService implements OnModuleInit {
             scope: `${EAA_VCT}:mso_mdoc`,
             cryptographic_binding_methods_supported: ['jwk'],
             proof_types_supported: {
-              jwt: { proof_signing_alg_values_supported: ['ES256'], key_attestations_required: {}  },
+              jwt: { proof_signing_alg_values_supported: ['ES256'], key_attestations_required: {} },
             },
-            // For mDoc COSE, use COSE alg IDs. -7 = ES256
             credential_signing_alg_values_supported: [-7],
             doctype: doctype,
             credential_metadata: {
@@ -766,8 +718,6 @@ export class IssuerService implements OnModuleInit {
   }
 
   // ── OAuth Authorization Server metadata (/.well-known/oauth-authorization-server)
-  // Some wallets expect a dedicated OAuth AS discovery document at the root.
-  // This mirrors the auth-related fields from getIssuerMetadata().
   getAuthorizationServerMetadata() {
     const base = `${this.baseUrl}/issuer`;
     const origin = this.baseUrl;
@@ -784,7 +734,6 @@ export class IssuerService implements OnModuleInit {
       ],
       token_endpoint_auth_methods_supported: ['none', 'attest_jwt_client_auth'],
       authorization_endpoint_auth_methods_supported: ['attest_jwt_client_auth'],
-      // Newer ABA draft fields expected by EUDI Wallet
       client_attestation_signing_alg_values_supported: ['ES256'],
       client_attestation_pop_signing_alg_values_supported: ['ES256'],
       request_parameter_supported: true,
@@ -799,9 +748,6 @@ export class IssuerService implements OnModuleInit {
   }
 
   // SD-JWT VC §4.3 — JWT VC Issuer Metadata
-  // Wallet fetches this from /.well-known/jwt-vc-issuer after receiving our credential.
-  // The `issuer` MUST match the `iss` claim in the issued SD-JWT VC.
-  // Inline JWKS allows offline signature verification.
   getJwtVcIssuerMetadata() {
     return {
       issuer: this.baseUrl,
@@ -810,8 +756,6 @@ export class IssuerService implements OnModuleInit {
   }
 
   // ── OpenID Provider metadata (/.well-known/openid-configuration) ──────────
-  // Some clients (e.g., EUDI Wallet libraries) consult this document to
-  // determine Authorization Server capabilities, including ABA requirements.
   getOpenIdProviderMetadata() {
     const base = `${this.baseUrl}/issuer`;
     const origin = this.baseUrl;
@@ -827,7 +771,6 @@ export class IssuerService implements OnModuleInit {
       ],
       token_endpoint_auth_methods_supported: ['none', 'attest_jwt_client_auth'],
       authorization_endpoint_auth_methods_supported: ['attest_jwt_client_auth'],
-      // Fields required by the newer ABA draft checked by the wallet
       client_attestation_signing_alg_values_supported: ['ES256'],
       client_attestation_pop_signing_alg_values_supported: ['ES256'],
       request_parameter_supported: true,
@@ -837,5 +780,4 @@ export class IssuerService implements OnModuleInit {
       id_token_signing_alg_values_supported: ['ES256'],
     };
   }
-
 }
