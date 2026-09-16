@@ -710,7 +710,7 @@ export class IssuerService implements OnModuleInit {
           cryptographic_binding_methods_supported: ['jwk'],
           credential_signing_alg_values_supported: ['ES256'],
           proof_types_supported: {
-            jwt: { proof_signing_alg_values_supported: ['ES256'] },
+            jwt: { proof_signing_alg_values_supported: ['ES256'], key_attestations_required: false },
           },
           display: [{ name: 'Infrastructure Access Attestation', locale: 'en-US' }],
           claims: {
@@ -750,7 +750,7 @@ export class IssuerService implements OnModuleInit {
             scope: `${EAA_VCT}:mso_mdoc`,
             cryptographic_binding_methods_supported: ['jwk'],
             proof_types_supported: {
-              jwt: { proof_signing_alg_values_supported: ['ES256'] },
+              jwt: { proof_signing_alg_values_supported: ['ES256'], key_attestations_required: false  },
             },
             // For mDoc COSE, use COSE alg IDs. -7 = ES256
             credential_signing_alg_values_supported: [-7],
